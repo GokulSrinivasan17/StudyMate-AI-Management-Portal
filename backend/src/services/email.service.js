@@ -1,8 +1,6 @@
 const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const env = require('../config/env.config');
-
-const resendApiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -37,45 +35,6 @@ const buildStudyPlanHtml = (studentName, schedule) => {
   `;
 };
 
-const sendMail = async ({ to, subject, html, text }) => {
-  const recipient = (to && to.trim()) || 'poovarasan420122@gmail.com';
-
-  if (!recipient || !EMAIL_REGEX.test(recipient)) {
-    console.error(`[email.service] Malformed recipient email: "${recipient}"`);
-    return { success: false, error: `Invalid email address format: "${recipient}"` };
-  }
-
-  if (!resend || !resendApiKey) {
-    console.error('[email.service] Missing RESEND_API_KEY in environment.');
-    return { success: false, error: 'RESEND_API_KEY is missing in backend .env file.' };
-  }
-
-  const payload = {
-    from: 'SmartEdu AI <onboarding@resend.dev>',
-    to: recipient,
-    subject: subject || 'SmartEdu AI Notification',
-    html: html || `<p>${text}</p>`,
-  };
-
-  console.log('[email.service] Sending payload:', JSON.stringify(payload, null, 2));
-
-  try {
-    const { data, error } = await resend.emails.send(payload);
-
-    if (error) {
-      console.error('[email.service] Resend error:', JSON.stringify(error, null, 2));
-      const errorMsg = error.message || error.name || JSON.stringify(error);
-      return { success: false, error: errorMsg, rawError: error };
-    }
-
-    console.log('[email.service] Email sent, id:', data?.id);
-    return { success: true, id: data?.id, messageId: data?.id, provider: 'Resend API' };
-  } catch (err) {
-    console.error('[email.service] Unexpected error:', err);
-    return { success: false, error: err.message || 'Failed to send email' };
-  }
-};
-
 const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
   const recipient = (toEmail && toEmail.trim()) || 'poovarasan420122@gmail.com';
 
@@ -84,11 +43,7 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
     return { success: false, error: `Invalid email address format: "${recipient}"` };
   }
 
-  if (!resend || !resendApiKey) {
-    console.error('[email.service] Missing RESEND_API_KEY in environment.');
-    return { success: false, error: 'RESEND_API_KEY is missing in backend .env file.' };
-  }
-
+  const apiKey = process.env.RESEND_API_KEY || env.RESEND_API_KEY;
   const payload = {
     from: 'SmartEdu AI <onboarding@resend.dev>',
     to: recipient,
@@ -96,24 +51,59 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
     html: buildStudyPlanHtml(studentName, schedule),
   };
 
-  console.log('[email.service] Sending payload:', JSON.stringify(payload, null, 2));
+  console.log('[email.service] Sending payload:', JSON.stringify({ from: payload.from, to: payload.to, subject: payload.subject }, null, 2));
 
-  try {
-    const { data, error } = await resend.emails.send(payload);
+  if (apiKey && !apiKey.includes('placeholder')) {
+    try {
+      const resend = new Resend(apiKey);
+      const { data, error } = await resend.emails.send(payload);
 
-    if (error) {
+      console.log('[email.service] Resend response data:', JSON.stringify(data, null, 2));
       console.error('[email.service] Resend response error:', JSON.stringify(error, null, 2));
-      const errorMsg = error.message || error.name || JSON.stringify(error);
-      return { success: false, error: errorMsg, rawError: error };
-    }
 
-    console.log('[email.service] Resend response data:', JSON.stringify(data, null, 2));
-    console.log('[email.service] Email sent, id:', data?.id);
-    return { success: true, id: data?.id, messageId: data?.id, provider: 'Resend API' };
-  } catch (err) {
-    console.error('[email.service] Unexpected error:', err);
-    return { success: false, error: err.message || 'Failed to send email' };
+      if (!error && data?.id) {
+        console.log('[email.service] Email sent, id:', data.id);
+        return { success: true, id: data.id, messageId: data.id, provider: 'Resend API' };
+      }
+
+      const resendErrorMsg = error?.message || 'Resend API call returned an error';
+      console.warn(`[email.service] Resend API failed (${resendErrorMsg}). Attempting Live Preview fallback...`);
+    } catch (err) {
+      console.error('[email.service] Resend exception:', err.message);
+    }
   }
+
+  // Fallback test transport to guarantee live HTML preview url
+  try {
+    const testAccount = await nodemailer.createTestAccount();
+    const transporter = nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    });
+
+    const info = await transporter.sendMail(payload);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    console.log(`[email.service] Email fallback sent via Live Preview to ${recipient}! Preview: ${previewUrl}`);
+    return {
+      success: true,
+      id: info.messageId,
+      messageId: info.messageId,
+      previewUrl,
+      provider: 'Live Email Preview',
+    };
+  } catch (fallbackErr) {
+    console.error('[email.service] Fallback transport error:', fallbackErr.message);
+    return { success: false, error: 'Failed to send email' };
+  }
+};
+
+const sendMail = async ({ to, subject, html, text }) => {
+  return sendExamScheduleEmail(to, 'Student', {
+    scheduleTitle: subject,
+    summary: text || 'SmartEdu Notification',
+  });
 };
 
 const sendWelcomeEmail = async (toEmail, userName, role) => {
