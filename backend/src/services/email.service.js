@@ -2,59 +2,69 @@ const nodemailer = require('nodemailer');
 const env = require('../config/env.config');
 
 const sendMail = async ({ to, subject, html, text }) => {
+  const recipient = (to && to.trim()) || 'poovarasan420122@gmail.com';
+  const gmailUser = env.GMAIL_USER || process.env.GMAIL_USER || 'studymate.hackathon@gmail.com';
+  const gmailPass = env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || 'Study@2026';
+
+  console.log(`📧 [EMAIL SERVICE] Preparing email send:`);
+  console.log(`   From: ${gmailUser}`);
+  console.log(`   To: ${recipient}`);
+  console.log(`   Subject: ${subject}`);
+
+  if (!gmailUser || !gmailPass) {
+    console.error(`❌ [EMAIL SERVICE ERROR] Missing GMAIL_USER or GMAIL_APP_PASSWORD in environment.`);
+    return {
+      success: false,
+      error: 'Gmail SMTP configuration is incomplete. GMAIL_USER and GMAIL_APP_PASSWORD must be configured in backend .env.',
+    };
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailPass,
+    },
+    tls: { rejectUnauthorized: false },
+  });
+
   const mailOptions = {
-    from: `"SmartEdu AI Portal" <${env.GMAIL_USER || 'studymate.hackathon@gmail.com'}>`,
-    to: to || 'studymate.hackathon@gmail.com',
+    from: `"SmartEdu AI Portal" <${gmailUser}>`,
+    to: recipient,
     subject,
     text: text || html.replace(/<[^>]*>?/gm, ''),
     html,
   };
 
-  // Try Gmail SMTP first if credentials exist
-  if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: env.GMAIL_USER,
-          pass: env.GMAIL_APP_PASSWORD,
-        },
-        tls: { rejectUnauthorized: false },
-      });
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`Email sent via Gmail SMTP to ${mailOptions.to}: ${info.messageId}`);
-      return { success: true, messageId: info.messageId, provider: 'Gmail SMTP' };
-    } catch (gmailError) {
-      console.warn(`Gmail SMTP attempt failed (${gmailError.message}). Switching to Live Test Transport...`);
-    }
-  }
-
-  // Guaranteed Fallback Ethereal Transport for 100% demo delivery & live preview
   try {
-    const testAccount = await nodemailer.createTestAccount();
-    const testTransporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ [EMAIL SERVICE SUCCESS] Message sent via Gmail SMTP:`);
+    console.log(`   Message ID: ${info.messageId}`);
+    console.log(`   SMTP Response: ${info.response}`);
 
-    const info = await testTransporter.sendMail(mailOptions);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    console.log(`Email delivered via Live Preview Transport to ${mailOptions.to}! Preview URL: ${previewUrl}`);
     return {
       success: true,
       messageId: info.messageId,
-      previewUrl: previewUrl || 'https://ethereal.email',
-      provider: 'Live Email Preview',
+      smtpResponse: info.response,
+      provider: 'Gmail SMTP',
     };
-  } catch (fallbackErr) {
-    console.error('Fallback email transport error:', fallbackErr.message);
+  } catch (err) {
+    console.error(`❌ [EMAIL SERVICE ERROR] Nodemailer sendMail failed:`);
+    console.error(`   Error Message: ${err.message}`);
+    console.error(`   Error Code: ${err.code}`);
+    console.error(`   Response Code: ${err.responseCode}`);
+    console.error(`   SMTP Response: ${err.response}`);
+
+    let clientError = 'Failed to send email. Please check target email address.';
+    if (err.code === 'EAUTH' || err.responseCode === 535) {
+      clientError = 'Gmail SMTP authentication failed. A 16-character Google App Password (not the account password) is required in .env.';
+      console.error(`💡 [HINT] Google disabled standard account password logins for Nodemailer. Please generate a 16-character App Password at myaccount.google.com/apppasswords with 2FA enabled, and set GMAIL_APP_PASSWORD in .env.`);
+    }
+
     return {
-      success: true,
-      provider: 'SmartEdu Email Engine',
-      previewUrl: 'https://ethereal.email',
+      success: false,
+      error: clientError,
+      errorCode: err.code,
     };
   }
 };

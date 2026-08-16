@@ -167,36 +167,34 @@ const sendExamReminders = async (req, res, next) => {
 
     const schedule = await generateExamStudySchedule(student, upcomingExams);
 
-    let emailResult = { success: false };
-    let telegramResult = { success: false };
+    let emailResult = { success: false, error: 'Email dispatch skipped by user' };
+    let telegramResult = { success: false, error: 'Telegram dispatch skipped by user' };
 
-    // Smart fallback if recipientEmail is empty or whitespace
-    const emailTarget = (recipientEmail && recipientEmail.trim()) || student.user.email || env.GMAIL_USER || 'studymate.hackathon@gmail.com';
+    const emailTarget = (recipientEmail && recipientEmail.trim()) || student.user.email || 'poovarasan420122@gmail.com';
     const chatTarget = (telegramChatId && telegramChatId.trim()) || '6640386706';
 
     if (sendEmail !== false && emailTarget) {
       emailResult = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
     }
 
-    if (sendTelegram !== false) {
+    if (sendTelegram !== false && chatTarget) {
       telegramResult = await sendExamScheduleTelegram(chatTarget, student.user.name, schedule);
     }
 
-    const finalChatId = telegramResult.chatId || chatTarget || '6640386706';
-
-    return ApiResponse.success(res, `Exam study schedule reminders dispatched`, {
+    return ApiResponse.success(res, `Exam study schedule reminders processed`, {
       studentName: student.user.name,
       recipientEmail: emailTarget,
-      telegramChatId: finalChatId,
+      telegramChatId: chatTarget,
       emailStatus: {
-        sent: emailResult.success,
-        provider: emailResult.provider || 'Gmail SMTP',
-        previewUrl: emailResult.previewUrl || null,
+        sent: Boolean(emailResult.success),
+        provider: emailResult.provider || null,
         messageId: emailResult.messageId || null,
+        error: emailResult.error || null,
       },
       telegramStatus: {
-        sent: telegramResult.success !== false,
-        chatId: finalChatId,
+        sent: Boolean(telegramResult.success),
+        messageId: telegramResult.messageId || null,
+        chatId: telegramResult.chatId || chatTarget,
         error: telegramResult.error || null,
         botUrl: `https://t.me/${env.TELEGRAM_BOT_USERNAME.replace('@', '')}`,
       },

@@ -3,92 +3,81 @@ const env = require('../config/env.config');
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
 
-// Smart Auto-Detect active chat_id from recent bot updates if provided ID is missing/invalid
-const autoDetectLatestChatId = async () => {
-  try {
-    const response = await axios.get(`${TELEGRAM_API_URL}/getUpdates`);
-    const updates = response.data?.result || [];
-    for (let i = updates.length - 1; i >= 0; i--) {
-      const chat = updates[i].message?.chat || updates[i].my_chat_member?.chat || updates[i].edited_message?.chat;
-      if (chat && chat.id && chat.type === 'private') {
-        return { chatId: chat.id, username: chat.username || chat.first_name };
-      }
-    }
-  } catch (err) {
-    console.error('Failed to auto-detect Telegram chat_id:', err.message);
-  }
-  return null;
-};
-
 const getOrValidateChatId = async (chatId) => {
+  const targetId = chatId || '6640386706';
   try {
     if (!env.TELEGRAM_BOT_TOKEN) {
+      console.error('❌ [TELEGRAM ERROR] Missing TELEGRAM_BOT_TOKEN in environment.');
       return { valid: false, error: 'Telegram Bot Token not configured on server.' };
     }
 
-    // Attempt validation with provided chatId first if present and not bot ID
-    if (chatId && String(chatId) !== '8721806166') {
-      try {
-        const response = await axios.get(`${TELEGRAM_API_URL}/getChat`, {
-          params: { chat_id: chatId },
-        });
+    console.log(`📱 [TELEGRAM] Validating Chat ID ${targetId} via getChat API...`);
+    const response = await axios.get(`${TELEGRAM_API_URL}/getChat`, {
+      params: { chat_id: targetId },
+    });
 
-        if (response.data && response.data.ok) {
-          return { valid: true, chatId: chatId, chat: response.data.result };
-        }
-      } catch (e) {
-        console.warn(`Provided Chat ID ${chatId} failed getChat, attempting auto-detection...`);
-      }
+    if (response.data && response.data.ok) {
+      console.log(`✅ [TELEGRAM] getChat Success for ${targetId} (${response.data.result.first_name || 'User'})`);
+      return { valid: true, chatId: targetId, chat: response.data.result };
     }
 
-    // Auto-detect from Telegram getUpdates if provided ID is missing or invalid
-    const autoDetected = await autoDetectLatestChatId();
-    if (autoDetected && autoDetected.chatId) {
-      console.log(`Auto-detected active Telegram Chat ID: ${autoDetected.chatId} (${autoDetected.username})`);
-      return { valid: true, chatId: autoDetected.chatId, username: autoDetected.username };
-    }
-
-    // Fallback default active chat ID if available
-    return {
-      valid: true,
-      chatId: '6640386706',
-      username: 'POOVARASAN',
-    };
+    return { valid: false, error: `Please open ${env.TELEGRAM_BOT_USERNAME} on Telegram and press START first.` };
   } catch (error) {
     const desc = error.response?.data?.description || error.message;
-    console.error(`Telegram getChat validation error:`, desc);
+    console.error(`❌ [TELEGRAM ERROR] getChat failed for Chat ID ${targetId}:`, desc);
     return {
-      valid: true,
-      chatId: '6640386706',
+      valid: false,
+      error: `Please open ${env.TELEGRAM_BOT_USERNAME} on Telegram and press START first.`,
       botUsername: env.TELEGRAM_BOT_USERNAME,
     };
   }
 };
 
 const sendTelegramMessage = async (targetChatId, messageText) => {
-  try {
-    const validation = await getOrValidateChatId(targetChatId);
-    const activeChatId = validation.chatId || '6640386706';
+  const chatId = targetChatId || '6640386706';
 
-    try {
-      const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
-        chat_id: activeChatId,
-        text: messageText,
-        parse_mode: 'HTML',
-      });
-      return { success: response.data && response.data.ok, chatId: activeChatId, data: response.data };
-    } catch (htmlErr) {
-      // Fallback without parse_mode
-      const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
-        chat_id: activeChatId,
-        text: messageText,
-      });
-      return { success: response.data && response.data.ok, chatId: activeChatId, data: response.data };
+  // 1. Validate chat ID first using getChat
+  const validation = await getOrValidateChatId(chatId);
+  if (!validation.valid) {
+    console.error(`❌ [TELEGRAM ERROR] Validation failed: ${validation.error}`);
+    return { success: false, error: validation.error, botUsername: env.TELEGRAM_BOT_USERNAME };
+  }
+
+  console.log(`📱 [TELEGRAM] Sending message to Chat ID ${chatId}...`);
+
+  try {
+    const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
+      chat_id: chatId,
+      text: messageText,
+      parse_mode: 'HTML',
+    });
+
+    const isOk = response.data && response.data.ok;
+    const msgId = response.data?.result?.message_id;
+
+    if (isOk) {
+      console.log(`✅ [TELEGRAM SUCCESS] Message delivered! Message ID: ${msgId}, Chat ID: ${chatId}`);
+      return {
+        success: true,
+        messageId: msgId,
+        chatId,
+        data: response.data,
+      };
+    } else {
+      console.error(`❌ [TELEGRAM ERROR] API returned ok=false:`, response.data);
+      return {
+        success: false,
+        error: response.data?.description || 'Telegram API delivery failed.',
+      };
     }
   } catch (error) {
-    const errorMsg = error.response?.data?.description || error.message;
-    console.error('Failed to send Telegram message:', errorMsg);
-    return { success: false, error: errorMsg, botUsername: env.TELEGRAM_BOT_USERNAME };
+    const desc = error.response?.data?.description || error.message;
+    console.error(`❌ [TELEGRAM ERROR] sendMessage API failed:`, desc);
+    return {
+      success: false,
+      error: desc,
+      botUsername: env.TELEGRAM_BOT_USERNAME,
+    };
   }
 };
 

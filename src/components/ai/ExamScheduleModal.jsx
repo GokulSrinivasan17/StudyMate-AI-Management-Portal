@@ -8,7 +8,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
 
-  const defaultEmail = user?.email || 'studymate.hackathon@gmail.com';
+  const defaultEmail = user?.email || 'poovarasan420122@gmail.com';
   const defaultChatId = '6640386706';
 
   const [loading, setLoading] = useState(false);
@@ -71,7 +71,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       } else {
         const resData = res?.data || res;
         setDispatchResult(resData);
-        addToast('Exam study reminders delivered to Email & Telegram!', 'success', 'Reminders Dispatched');
+        addToast('Exam study reminders processed!', 'success', 'Dispatch Completed');
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Error dispatching reminders';
@@ -177,7 +177,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl space-y-3 animate-fade-in">
                   <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span>Exam Schedule Reminders Processed & Dispatched!</span>
+                    <span>Exam Schedule Reminders Processed!</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -190,10 +190,16 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           dispatchResult.emailStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
-                          {dispatchResult.emailStatus?.sent ? (dispatchResult.emailStatus?.provider || 'Sent') : 'Failed'}
+                          {dispatchResult.emailStatus?.sent
+                            ? (dispatchResult.emailStatus?.provider || 'Sent')
+                            : 'Failed'}
                         </span>
                       </div>
                       <p className="text-slate-600 font-mono text-[11px] truncate">Target: {dispatchResult.recipientEmail}</p>
+
+                      {dispatchResult.emailStatus?.error && (
+                        <p className="text-[11px] text-rose-600 font-medium">{dispatchResult.emailStatus.error}</p>
+                      )}
 
                       {dispatchResult.emailStatus?.previewUrl && (
                         <a
@@ -215,12 +221,16 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                           <MessageSquare className="w-3.5 h-3.5 text-sky-500" /> Telegram Bot
                         </span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          dispatchResult.telegramStatus?.sent !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          dispatchResult.telegramStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
-                          {dispatchResult.telegramStatus?.sent !== false ? 'Delivered 🚀' : 'Bot Standby'}
+                          {dispatchResult.telegramStatus?.sent ? 'Delivered 🚀' : 'Bot Standby'}
                         </span>
                       </div>
                       <p className="text-slate-600 font-mono text-[11px]">Chat ID: {dispatchResult.telegramChatId || '6640386706'}</p>
+
+                      {dispatchResult.telegramStatus?.messageId && (
+                        <p className="text-[10px] text-emerald-700 font-mono">Telegram Message ID: #{dispatchResult.telegramStatus.messageId}</p>
+                      )}
                       
                       <a
                         href="https://t.me/studymateAgent_bot"
@@ -264,7 +274,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     </div>
                     <input
                       type="email"
-                      placeholder="e.g. student@example.com"
+                      placeholder="e.g. poovarasan420122@gmail.com"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
@@ -275,7 +285,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                   <div className="space-y-2 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID (Auto-Detected)
+                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID
                       </label>
                       <input
                         type="checkbox"
@@ -297,7 +307,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="pt-2 flex items-center justify-between flex-wrap gap-4">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Telegram messages sent to <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a>.</span>
+                    <span>Telegram messages sent directly to <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> (Chat ID: 6640386706).</span>
                   </div>
 
                   <button
