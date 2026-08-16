@@ -1,27 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { aiService } from '../../services/aiService';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export const ExamScheduleModal = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
+  const { addToast } = useToast();
+
+  const defaultEmail = user?.email || 'student@smartedu.ai';
   const [loading, setLoading] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [schedule, setSchedule] = useState(null);
-  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
   const [telegramChatId, setTelegramChatId] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
   const [sendTelegram, setSendTelegram] = useState(true);
   const [dispatchResult, setDispatchResult] = useState(null);
   const [dispatchError, setDispatchError] = useState(null);
-  const { addToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
       fetchSchedule();
       setDispatchResult(null);
       setDispatchError(null);
+      if (!recipientEmail) {
+        setRecipientEmail(user?.email || 'student@smartedu.ai');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const fetchSchedule = async () => {
     setLoading(true);
@@ -41,14 +48,11 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (sendEmail && !recipientEmail) {
-      addToast('Please enter a target email address', 'warning');
-      return;
-    }
+    const targetEmail = recipientEmail.trim() || user?.email || 'student@smartedu.ai';
+    const targetChat = telegramChatId.trim();
 
-    if (sendTelegram && !telegramChatId) {
-      addToast('Please enter a Telegram Chat ID', 'warning');
-      return;
+    if (sendTelegram && !targetChat) {
+      addToast('Please enter your Telegram Chat ID (or open @studymateAgent_bot and press START)', 'warning');
     }
 
     setSendingReminders(true);
@@ -57,10 +61,10 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
 
     try {
       const res = await aiService.sendExamReminders({
-        recipientEmail,
+        recipientEmail: targetEmail,
         sendEmail,
         sendTelegram,
-        telegramChatId,
+        telegramChatId: targetChat,
       });
 
       if (res?.success === false) {

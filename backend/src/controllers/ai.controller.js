@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma.config');
 const ApiResponse = require('../utils/apiResponse.utils');
+const env = require('../config/env.config');
 const {
   generateStudentInsights,
   generateStudentRecommendations,
@@ -169,20 +170,22 @@ const sendExamReminders = async (req, res, next) => {
     let emailResult = { success: false };
     let telegramResult = { success: false };
 
-    const emailTarget = recipientEmail || student.user.email || 'studymate.hackathon@gmail.com';
+    // Smart fallback if recipientEmail is empty or whitespace
+    const emailTarget = (recipientEmail && recipientEmail.trim()) || student.user.email || env.GMAIL_USER || 'studymate.hackathon@gmail.com';
+    const chatTarget = (telegramChatId && telegramChatId.trim()) || '';
 
     if (sendEmail !== false && emailTarget) {
       emailResult = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
     }
 
-    if (sendTelegram !== false && telegramChatId) {
-      telegramResult = await sendExamScheduleTelegram(telegramChatId, student.user.name, schedule);
+    if (sendTelegram !== false && chatTarget) {
+      telegramResult = await sendExamScheduleTelegram(chatTarget, student.user.name, schedule);
     }
 
     return ApiResponse.success(res, `Exam study schedule reminders dispatched`, {
       studentName: student.user.name,
       recipientEmail: emailTarget,
-      telegramChatId: telegramChatId || 'Not provided',
+      telegramChatId: chatTarget || 'Not provided',
       emailStatus: {
         sent: emailResult.success,
         provider: emailResult.provider || 'Failed',
@@ -192,7 +195,7 @@ const sendExamReminders = async (req, res, next) => {
       telegramStatus: {
         sent: telegramResult.success,
         error: telegramResult.error || null,
-        botUrl: 'https://t.me/studymateAgent_bot',
+        botUrl: `https://t.me/${env.TELEGRAM_BOT_USERNAME.replace('@', '')}`,
       },
       scheduleTitle: schedule.scheduleTitle,
     });
