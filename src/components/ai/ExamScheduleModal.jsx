@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell } from 'lucide-react';
+import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, UserCheck } from 'lucide-react';
 import { aiService } from '../../services/aiService';
 import { useToast } from '../../context/ToastContext';
 
@@ -7,7 +7,8 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [schedule, setSchedule] = useState(null);
-  const [telegramChatId, setTelegramChatId] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('studymate.hackathon@gmail.com');
+  const [telegramChatId, setTelegramChatId] = useState('8721806166');
   const [sendEmail, setSendEmail] = useState(true);
   const [sendTelegram, setSendTelegram] = useState(true);
   const { addToast } = useToast();
@@ -31,16 +32,22 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   };
 
   const handleSendReminders = async () => {
+    if (!sendEmail && !sendTelegram) {
+      addToast('Please enable at least Email or Telegram reminder channel', 'warning');
+      return;
+    }
+
     setSendingReminders(true);
     try {
-      await aiService.sendExamReminders({
+      const res = await aiService.sendExamReminders({
+        recipientEmail,
         sendEmail,
         sendTelegram,
         telegramChatId,
       });
-      addToast('Exam study reminders dispatched to Email & Telegram Bot!', 'success', 'Reminders Dispatched');
+      addToast(`Exam schedule dispatched to ${recipientEmail} ${sendTelegram && telegramChatId ? '& Telegram Bot!' : ''}`, 'success', 'Reminders Sent Successfully');
     } catch {
-      addToast('Error sending reminders', 'error');
+      addToast('Error dispatching reminders', 'error');
     } finally {
       setSendingReminders(false);
     }
@@ -59,8 +66,8 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
               <Sparkles className="w-6 h-6 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Gemini AI Exam Schedule & Reminders</h2>
-              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan & Telegram/Email study tracker</p>
+              <h2 className="text-xl font-bold">Gemini AI Exam Schedule & Reminders Engine</h2>
+              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan with custom Email & Telegram Bot dispatch</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors">
@@ -125,65 +132,76 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Reminder Channels Config & Trigger */}
-              <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-4 shadow-lg">
-                <div className="flex items-center justify-between">
+              {/* USER INPUT & REMINDER DISPATCH SECTION */}
+              <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-5 shadow-xl border border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div className="flex items-center gap-2">
                     <Bell className="w-5 h-5 text-amber-400 animate-bounce" />
                     <div>
-                      <h4 className="text-sm font-bold text-white">Automated Study Schedule Reminders</h4>
-                      <p className="text-xs text-slate-300">Dispatch study alerts via Email & Telegram Bot</p>
+                      <h4 className="text-sm font-bold text-white">Dispatch Exam Schedule & Daily Reminders</h4>
+                      <p className="text-xs text-slate-400">Provide your target Email & Telegram Chat ID to receive automated study alerts</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2">
-                  <div className="flex items-center justify-between bg-slate-800 p-3.5 rounded-xl border border-slate-700">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-indigo-400" />
-                      <span>Gmail Alert (studymate.hackathon@gmail.com)</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Email Input Field */}
+                  <div className="space-y-2 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <Mail className="w-4 h-4 text-indigo-400" /> Target Email Address
+                      </label>
+                      <input
+                        type="checkbox"
+                        checked={sendEmail}
+                        onChange={(e) => setSendEmail(e.target.checked)}
+                        className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                      />
                     </div>
                     <input
-                      type="checkbox"
-                      checked={sendEmail}
-                      onChange={(e) => setSendEmail(e.target.checked)}
-                      className="w-4 h-4 accent-indigo-600 rounded"
+                      type="email"
+                      placeholder="Enter target Email ID..."
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between bg-slate-800 p-3.5 rounded-xl border border-slate-700">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-sky-400" />
-                      <span>Telegram Bot (8721806166:AAGv...)</span>
+                  {/* Telegram Input Field */}
+                  <div className="space-y-2 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID / Bot Channel
+                      </label>
+                      <input
+                        type="checkbox"
+                        checked={sendTelegram}
+                        onChange={(e) => setSendTelegram(e.target.checked)}
+                        className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                      />
                     </div>
                     <input
-                      type="checkbox"
-                      checked={sendTelegram}
-                      onChange={(e) => setSendTelegram(e.target.checked)}
-                      className="w-4 h-4 accent-indigo-600 rounded"
+                      type="text"
+                      placeholder="Enter Telegram Chat ID (e.g. 8721806166)..."
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                  <input
-                    type="text"
-                    placeholder="Enter Telegram Chat ID (optional for bot dispatch)..."
-                    value={telegramChatId}
-                    onChange={(e) => setTelegramChatId(e.target.value)}
-                    className="w-full sm:flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
-                  />
+                <div className="pt-2 flex items-center justify-end">
                   <button
                     onClick={handleSendReminders}
                     disabled={sendingReminders}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md"
+                    className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs px-8 py-3 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50"
                   >
                     {sendingReminders ? (
                       <Sparkles className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    Dispatch Reminders Now
+                    <span>Dispatch Reminders Now</span>
                   </button>
                 </div>
               </div>

@@ -144,7 +144,7 @@ const generateExamSchedule = async (req, res, next) => {
 
 const sendExamReminders = async (req, res, next) => {
   try {
-    const { studentId, telegramChatId, sendEmail, sendTelegram } = req.body;
+    const { studentId, recipientEmail, telegramChatId, sendEmail, sendTelegram } = req.body;
     const sId = studentId || req.user.student?.id;
 
     if (!sId) {
@@ -169,8 +169,10 @@ const sendExamReminders = async (req, res, next) => {
     let emailSent = false;
     let telegramSent = false;
 
-    if (sendEmail !== false && student.user.email) {
-      const emailRes = await sendExamScheduleEmail(student.user.email, student.user.name, schedule);
+    const emailTarget = recipientEmail || student.user.email || 'studymate.hackathon@gmail.com';
+
+    if (sendEmail !== false && emailTarget) {
+      const emailRes = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
       emailSent = emailRes.success;
     }
 
@@ -178,8 +180,10 @@ const sendExamReminders = async (req, res, next) => {
       telegramSent = await sendExamScheduleTelegram(telegramChatId, student.user.name, schedule);
     }
 
-    return ApiResponse.success(res, 'Exam study schedule reminders dispatched', {
+    return ApiResponse.success(res, `Exam study schedule reminders dispatched to ${emailTarget}`, {
       studentName: student.user.name,
+      recipientEmail: emailTarget,
+      telegramChatId: telegramChatId || 'Not provided',
       dispatchStatus: { emailSent, telegramSent },
       scheduleTitle: schedule.scheduleTitle,
     });
