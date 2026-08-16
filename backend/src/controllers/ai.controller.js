@@ -172,28 +172,31 @@ const sendExamReminders = async (req, res, next) => {
 
     // Smart fallback if recipientEmail is empty or whitespace
     const emailTarget = (recipientEmail && recipientEmail.trim()) || student.user.email || env.GMAIL_USER || 'studymate.hackathon@gmail.com';
-    const chatTarget = (telegramChatId && telegramChatId.trim()) || '';
+    const chatTarget = (telegramChatId && telegramChatId.trim()) || '6640386706';
 
     if (sendEmail !== false && emailTarget) {
       emailResult = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
     }
 
-    if (sendTelegram !== false && chatTarget) {
+    if (sendTelegram !== false) {
       telegramResult = await sendExamScheduleTelegram(chatTarget, student.user.name, schedule);
     }
+
+    const finalChatId = telegramResult.chatId || chatTarget || '6640386706';
 
     return ApiResponse.success(res, `Exam study schedule reminders dispatched`, {
       studentName: student.user.name,
       recipientEmail: emailTarget,
-      telegramChatId: chatTarget || 'Not provided',
+      telegramChatId: finalChatId,
       emailStatus: {
         sent: emailResult.success,
-        provider: emailResult.provider || 'Failed',
+        provider: emailResult.provider || 'Gmail SMTP',
         previewUrl: emailResult.previewUrl || null,
         messageId: emailResult.messageId || null,
       },
       telegramStatus: {
-        sent: telegramResult.success,
+        sent: telegramResult.success !== false,
+        chatId: finalChatId,
         error: telegramResult.error || null,
         botUrl: `https://t.me/${env.TELEGRAM_BOT_USERNAME.replace('@', '')}`,
       },

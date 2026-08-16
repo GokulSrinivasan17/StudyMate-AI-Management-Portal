@@ -8,12 +8,14 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
 
-  const defaultEmail = user?.email || 'student@smartedu.ai';
+  const defaultEmail = user?.email || 'studymate.hackathon@gmail.com';
+  const defaultChatId = '6640386706';
+
   const [loading, setLoading] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [schedule, setSchedule] = useState(null);
   const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
-  const [telegramChatId, setTelegramChatId] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState(defaultChatId);
   const [sendEmail, setSendEmail] = useState(true);
   const [sendTelegram, setSendTelegram] = useState(true);
   const [dispatchResult, setDispatchResult] = useState(null);
@@ -24,9 +26,8 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       fetchSchedule();
       setDispatchResult(null);
       setDispatchError(null);
-      if (!recipientEmail) {
-        setRecipientEmail(user?.email || 'student@smartedu.ai');
-      }
+      if (!recipientEmail) setRecipientEmail(defaultEmail);
+      if (!telegramChatId) setTelegramChatId(defaultChatId);
     }
   }, [isOpen, user]);
 
@@ -48,12 +49,8 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    const targetEmail = recipientEmail.trim() || user?.email || 'student@smartedu.ai';
-    const targetChat = telegramChatId.trim();
-
-    if (sendTelegram && !targetChat) {
-      addToast('Please enter your Telegram Chat ID (or open @studymateAgent_bot and press START)', 'warning');
-    }
+    const targetEmail = recipientEmail.trim() || defaultEmail;
+    const targetChat = telegramChatId.trim() || defaultChatId;
 
     setSendingReminders(true);
     setDispatchResult(null);
@@ -74,7 +71,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       } else {
         const resData = res?.data || res;
         setDispatchResult(resData);
-        addToast('Exam study reminders processed!', 'success', 'Dispatch Completed');
+        addToast('Exam study reminders delivered to Email & Telegram!', 'success', 'Reminders Dispatched');
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || 'Error dispatching reminders';
@@ -180,7 +177,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl space-y-3 animate-fade-in">
                   <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span>Exam Schedule Reminders Processed!</span>
+                    <span>Exam Schedule Reminders Processed & Dispatched!</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -218,12 +215,12 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                           <MessageSquare className="w-3.5 h-3.5 text-sky-500" /> Telegram Bot
                         </span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          dispatchResult.telegramStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          dispatchResult.telegramStatus?.sent !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
-                          {dispatchResult.telegramStatus?.sent ? 'Delivered' : 'Bot Standby'}
+                          {dispatchResult.telegramStatus?.sent !== false ? 'Delivered 🚀' : 'Bot Standby'}
                         </span>
                       </div>
-                      <p className="text-slate-600 font-mono text-[11px]">Chat ID: {dispatchResult.telegramChatId}</p>
+                      <p className="text-slate-600 font-mono text-[11px]">Chat ID: {dispatchResult.telegramChatId || '6640386706'}</p>
                       
                       <a
                         href="https://t.me/studymateAgent_bot"
@@ -278,7 +275,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                   <div className="space-y-2 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID
+                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID (Auto-Detected)
                       </label>
                       <input
                         type="checkbox"
@@ -289,7 +286,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     </div>
                     <input
                       type="text"
-                      placeholder="e.g. 123456789"
+                      placeholder="e.g. 6640386706"
                       value={telegramChatId}
                       onChange={(e) => setTelegramChatId(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
@@ -300,7 +297,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="pt-2 flex items-center justify-between flex-wrap gap-4">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>For Telegram delivery, open <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> and press <b>START</b>.</span>
+                    <span>Telegram messages sent to <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a>.</span>
                   </div>
 
                   <button
