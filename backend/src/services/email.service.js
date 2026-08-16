@@ -1,21 +1,33 @@
 const nodemailer = require('nodemailer');
 const env = require('../config/env.config');
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const sendMail = async ({ to, subject, html, text }) => {
   const recipient = (to && to.trim()) || 'poovarasan420122@gmail.com';
   const gmailUser = env.GMAIL_USER || process.env.GMAIL_USER || 'studymate.hackathon@gmail.com';
   const gmailPass = env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || 'Study@2026';
 
   console.log(`📧 [EMAIL SERVICE] Preparing email send:`);
-  console.log(`   From: ${gmailUser}`);
+  console.log(`   From: "SmartEdu AI" <${gmailUser}>`);
   console.log(`   To: ${recipient}`);
   console.log(`   Subject: ${subject}`);
 
+  // 1. Validate Email Format Before Attempting Send
+  if (!recipient || !EMAIL_REGEX.test(recipient)) {
+    console.error(`❌ [EMAIL SERVICE ERROR] Malformed target email address: "${recipient}"`);
+    return {
+      success: false,
+      error: `Invalid email address format: "${recipient}". Please provide a valid email address.`,
+    };
+  }
+
+  // 2. Validate Server Credentials
   if (!gmailUser || !gmailPass) {
     console.error(`❌ [EMAIL SERVICE ERROR] Missing GMAIL_USER or GMAIL_APP_PASSWORD in environment.`);
     return {
       success: false,
-      error: 'Gmail SMTP configuration is incomplete. GMAIL_USER and GMAIL_APP_PASSWORD must be configured in backend .env.',
+      error: 'Gmail SMTP configuration is incomplete. GMAIL_USER and GMAIL_APP_PASSWORD must be set in backend .env.',
     };
   }
 
@@ -29,7 +41,7 @@ const sendMail = async ({ to, subject, html, text }) => {
   });
 
   const mailOptions = {
-    from: `"SmartEdu AI Portal" <${gmailUser}>`,
+    from: `"SmartEdu AI" <${gmailUser}>`,
     to: recipient,
     subject,
     text: text || html.replace(/<[^>]*>?/gm, ''),
@@ -38,33 +50,62 @@ const sendMail = async ({ to, subject, html, text }) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [EMAIL SERVICE SUCCESS] Message sent via Gmail SMTP:`);
+
+    console.log(`📥 [EMAIL SERVICE] Nodemailer Send Result:`);
     console.log(`   Message ID: ${info.messageId}`);
-    console.log(`   SMTP Response: ${info.response}`);
+    console.log(`   Envelope:`, JSON.stringify(info.envelope));
+    console.log(`   Accepted:`, JSON.stringify(info.accepted));
+    console.log(`   Rejected:`, JSON.stringify(info.rejected));
+    console.log(`   Response: ${info.response}`);
+
+    // Check if recipients were rejected or not accepted
+    if (info.rejected && info.rejected.length > 0) {
+      console.error(`❌ [EMAIL SERVICE FAILURE] Recipients rejected by SMTP server:`, info.rejected);
+      return {
+        success: false,
+        error: `Email delivery rejected by recipient server for: ${info.rejected.join(', ')}`,
+        rejected: info.rejected,
+      };
+    }
+
+    if (!info.accepted || info.accepted.length === 0) {
+      console.error(`❌ [EMAIL SERVICE FAILURE] No recipients were accepted by SMTP server.`);
+      return {
+        success: false,
+        error: 'Email was not accepted by SMTP server.',
+      };
+    }
+
+    console.log(`✅ [EMAIL SERVICE SUCCESS] Message delivered successfully to ${recipient} (Message ID: ${info.messageId})`);
 
     return {
       success: true,
       messageId: info.messageId,
-      smtpResponse: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
       provider: 'Gmail SMTP',
     };
   } catch (err) {
-    console.error(`❌ [EMAIL SERVICE ERROR] Nodemailer sendMail failed:`);
-    console.error(`   Error Message: ${err.message}`);
+    console.error(`❌ [EMAIL SERVICE ERROR] Nodemailer sendMail threw exception:`);
     console.error(`   Error Code: ${err.code}`);
+    console.error(`   Error Command: ${err.command}`);
     console.error(`   Response Code: ${err.responseCode}`);
-    console.error(`   SMTP Response: ${err.response}`);
+    console.error(`   Response Message: ${err.response}`);
+    console.error(`   Full Message: ${err.message}`);
 
-    let clientError = 'Failed to send email. Please check target email address.';
+    let clientError = 'Failed to send email. Please check target address.';
     if (err.code === 'EAUTH' || err.responseCode === 535) {
-      clientError = 'Gmail SMTP authentication failed. A 16-character Google App Password (not the account password) is required in .env.';
-      console.error(`💡 [HINT] Google disabled standard account password logins for Nodemailer. Please generate a 16-character App Password at myaccount.google.com/apppasswords with 2FA enabled, and set GMAIL_APP_PASSWORD in .env.`);
+      clientError = 'Gmail SMTP authentication failed. A 16-character Google App Password (not standard password) is required in .env.';
+      console.error(`💡 [HINT] Google requires a 16-character App Password. Enable 2FA on ${gmailUser}, generate an App Password at myaccount.google.com/apppasswords, and update GMAIL_APP_PASSWORD in backend/.env.`);
     }
 
     return {
       success: false,
       error: clientError,
       errorCode: err.code,
+      command: err.command,
+      responseCode: err.responseCode,
     };
   }
 };
