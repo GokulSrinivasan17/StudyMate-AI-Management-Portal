@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { studentService } from '../../services/studentService';
-import { Award, Calendar, AlertTriangle, CheckCircle2, TrendingDown } from 'lucide-react';
+import { Award, Calendar, AlertTriangle, CheckCircle2, TrendingDown, Sparkles, Bell } from 'lucide-react';
 import { RiskBadge } from '../../components/common/RiskBadge';
+import { ExamScheduleModal } from '../../components/ai/ExamScheduleModal';
 
 export const ExamsGrades = () => {
   const [exams, setExams] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     studentService.getExams().then(data => setExams(data));
@@ -12,9 +14,20 @@ export const ExamsGrades = () => {
 
   return (
     <div className="space-y-8 pb-10">
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900">Exams & Grade History</h1>
-        <p className="text-xs text-slate-500 font-medium">Midterm assessments, endterm schedule, and grade feedback</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900">Exams & Grade History</h1>
+          <p className="text-xs text-slate-500 font-medium">Midterm assessments, endterm schedule, and grade feedback</p>
+        </div>
+
+        {/* Gemini AI Exam Schedule & Reminders Button */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md transition-all flex items-center gap-2.5 hover:scale-105 active:scale-95"
+        >
+          <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
+          <span>Gemini AI Exam Schedule & Reminders</span>
+        </button>
       </div>
 
       {/* Grade Cards Highlight */}
@@ -42,6 +55,25 @@ export const ExamsGrades = () => {
           <div className="text-2xl font-extrabold text-slate-900">84% <span className="text-sm font-bold text-indigo-600">(Grade A)</span></div>
           <p className="text-[10px] text-emerald-600 font-semibold">Low Risk</p>
         </div>
+      </div>
+
+      {/* Banner Highlight */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-3xl border border-indigo-900 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" /> Powered by Google Gemini AI
+          </div>
+          <h3 className="text-lg font-bold">Automated Upcoming Exam Study Schedule</h3>
+          <p className="text-xs text-slate-300">
+            Let Gemini AI build your day-by-day revision plan for upcoming midterms and send study reminders to your Email & Telegram Bot.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md shrink-0 flex items-center gap-2"
+        >
+          <Calendar className="w-4 h-4 text-indigo-600" /> View Schedule & Set Reminders
+        </button>
       </div>
 
       {/* Exam Table */}
@@ -87,6 +119,9 @@ export const ExamsGrades = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal */}
+      <ExamScheduleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

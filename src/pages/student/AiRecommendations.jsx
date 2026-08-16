@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { studentService } from '../../services/studentService';
 import { RiskBadge } from '../../components/common/RiskBadge';
 import { AIRiskCard } from '../../components/ai/AIRiskCard';
-import { Sparkles, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, ShieldAlert, Target } from 'lucide-react';
+import { Sparkles, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, ShieldAlert, Target, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ExamScheduleModal } from '../../components/ai/ExamScheduleModal';
 
 export const AiRecommendations = () => {
   const [aiData, setAiData] = useState(null);
   const [showFactors, setShowFactors] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,19 +31,27 @@ export const AiRecommendations = () => {
   return (
     <div className="space-y-8 pb-10">
       {/* Visual Header */}
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-8 rounded-3xl relative overflow-hidden shadow-xl">
+      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-8 rounded-3xl relative overflow-hidden shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <span className="p-3 bg-purple-600 rounded-2xl">
             <Sparkles className="w-8 h-8 text-amber-300" />
           </span>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-purple-300">
-              BUILDATHON 2026 AI SUITE
+              SMARTEDU AI SUITE
             </span>
             <h1 className="text-3xl font-extrabold mt-0.5">AI Academic Intelligence & Action Center</h1>
             <p className="text-xs text-purple-200 mt-1">Personalized academic risk mitigation plan for Harish Kolanjiyappan</p>
           </div>
         </div>
+
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-white text-slate-900 hover:bg-purple-50 font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-lg flex items-center gap-2 hover:scale-105 shrink-0"
+        >
+          <Calendar className="w-4 h-4 text-purple-600" />
+          <span>Generate Gemini AI Exam Schedule</span>
+        </button>
       </div>
 
       {/* Top 2 Cards: Risk Meter + Target Score */}
@@ -71,13 +81,22 @@ export const AiRecommendations = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate('/student/prediction')}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Launch What-If Performance Predictor</span>
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+            >
+              <Calendar className="w-4 h-4 text-amber-300" />
+              <span>AI Exam Schedule & Reminders</span>
+            </button>
+            <button
+              onClick={() => navigate('/student/prediction')}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>What-If Predictor</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -150,6 +169,9 @@ export const AiRecommendations = () => {
           ))}
         </div>
       </div>
+
+      {/* Modal */}
+      <ExamScheduleModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };
