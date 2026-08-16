@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockCourses } from '../../data/courses';
-import { Search, Filter, BookOpen, Star, Clock, Users, ArrowRight } from 'lucide-react';
+import { Search, Filter, BookOpen, Clock, Users, ArrowRight } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 
 export const Courses = () => {
@@ -22,9 +22,7 @@ export const Courses = () => {
     return matchesSearch && matchesCat && matchesLev;
   });
 
-  if (sortBy === 'Rating') {
-    filtered.sort((a, b) => b.rating - a.rating);
-  } else if (sortBy === 'Newest') {
+  if (sortBy === 'Newest') {
     filtered.sort((a, b) => b.id.localeCompare(a.id));
   } else {
     filtered.sort((a, b) => b.studentsCount - a.studentsCount);
@@ -87,7 +85,6 @@ export const Courses = () => {
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none"
             >
               <option value="Popular">Sort by: Popularity</option>
-              <option value="Rating">Sort by: Highest Rated</option>
               <option value="Newest">Sort by: Newest</option>
             </select>
           </div>
@@ -109,7 +106,7 @@ export const Courses = () => {
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-1">
                   <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {course.studentsCount} Students</span>
-                  <span className="text-amber-500 font-bold flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400" /> {course.rating}</span>
+                  <span className="text-slate-400 font-medium">{course.credits} Credits</span>
                 </div>
                 <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">{course.title}</h3>
                 <p className="text-xs text-slate-500 line-clamp-2 mt-2 leading-relaxed">{course.description}</p>

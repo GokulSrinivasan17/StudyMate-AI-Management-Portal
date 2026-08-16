@@ -139,7 +139,7 @@ export const Home = () => {
                 <div>
                   <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-1">
                     <span>{course.code}</span>
-                    <span className="text-amber-500 font-bold">★ {course.rating}</span>
+                    <span className="text-slate-400 font-medium">{course.credits} Credits</span>
                   </div>
                   <h3 className="font-bold text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">
                     {course.title}

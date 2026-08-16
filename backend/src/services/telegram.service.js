@@ -36,6 +36,23 @@ const sendStudentRiskAlert = async (chatId, studentName, riskLevel, attendance, 
   return sendTelegramMessage(chatId, message);
 };
 
+const sendExamScheduleTelegram = async (chatId, studentName, schedule) => {
+  const dailySummary = (schedule.dailyPlan || [])
+    .map((item) => `📌 *${item.day} (${item.date})*: ${item.focusSubject}\n  • ${(item.tasks || []).join('\n  • ')}`)
+    .join('\n\n');
+
+  const message = `📅 *SmartEdu Gemini AI Exam Schedule*
+
+*Student*: ${studentName}
+*Schedule*: ${schedule.scheduleTitle}
+
+${dailySummary}
+
+🔔 _Automated study reminders active via SmartEdu AI & Telegram_`;
+
+  return sendTelegramMessage(chatId, message);
+};
+
 const sendTelegramBroadcast = async (chatIds = [], messageTitle, messageBody) => {
   const formattedMsg = `📢 *${messageTitle}*\n\n${messageBody}\n\n_Sent via SmartEdu AI Academic Portal_`;
   const results = await Promise.all(
@@ -47,5 +64,6 @@ const sendTelegramBroadcast = async (chatIds = [], messageTitle, messageBody) =>
 module.exports = {
   sendTelegramMessage,
   sendStudentRiskAlert,
+  sendExamScheduleTelegram,
   sendTelegramBroadcast,
 };

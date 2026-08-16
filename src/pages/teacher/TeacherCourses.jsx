@@ -55,7 +55,7 @@ export const TeacherCourses = () => {
                 <span className="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">{c.code}</span>
                 <h3 className="font-bold text-base text-slate-900 mt-1">{c.title}</h3>
               </div>
-              <span className="text-amber-500 text-xs font-bold">★ {c.rating}</span>
+              <span className="text-slate-400 text-xs font-medium">{c.credits} Credits</span>
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-2 border-t border-slate-100">

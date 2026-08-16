@@ -44,7 +44,6 @@ export const CourseDetails = () => {
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-slate-300 pt-2 font-medium">
             <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-indigo-400" /> {course.studentsCount} Students Enrolled</span>
-            <span className="flex items-center gap-1.5 text-amber-400 font-bold"><Star className="w-4 h-4 fill-amber-400" /> {course.rating} Rating</span>
             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> {course.duration}</span>
             <span className="flex items-center gap-1.5"><Award className="w-4 h-4 text-purple-400" /> {course.credits} Credits</span>
           </div>

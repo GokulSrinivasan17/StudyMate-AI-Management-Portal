@@ -9,6 +9,8 @@ router.use(authenticateToken);
 
 router.get('/student-analysis/:studentId?', aiController.getStudentAiAnalysis);
 router.get('/class-analysis/:classId', authorizeRoles('ADMIN', 'TEACHER'), aiController.getTeacherClassAiAnalysis);
+router.get('/exam-schedule/:studentId?', aiController.generateExamSchedule);
+router.post('/exam-schedule/send-reminders', aiController.sendExamReminders);
 router.post('/chat', validate(aiPromptSchema), aiController.chatWithAssistant);
 
 module.exports = router;

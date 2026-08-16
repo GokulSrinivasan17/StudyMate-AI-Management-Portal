@@ -30,7 +30,7 @@ export const StudentCourses = () => {
                 <h3 className="font-bold text-base text-slate-900 mt-1">{course.title}</h3>
                 <p className="text-xs text-slate-500">{course.teacher}</p>
               </div>
-              <span className="text-amber-500 text-xs font-bold">★ {course.rating}</span>
+              <span className="text-slate-400 text-xs font-medium">{course.credits} Credits</span>
             </div>
 
             <ProgressBar value={course.progress || 75} label="Syllabus Completion" />

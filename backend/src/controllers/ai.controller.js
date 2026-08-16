@@ -4,8 +4,11 @@ const {
   generateStudentInsights,
   generateStudentRecommendations,
   generateTeacherInsights,
+  generateExamStudySchedule,
   askStudentAssistant,
 } = require('../services/gemini.service');
+const { sendExamScheduleEmail } = require('../services/email.service');
+const { sendExamScheduleTelegram } = require('../services/telegram.service');
 
 const getStudentAiAnalysis = async (req, res, next) => {
   try {
@@ -91,6 +94,100 @@ const getTeacherClassAiAnalysis = async (req, res, next) => {
   }
 };
 
+const generateExamSchedule = async (req, res, next) => {
+  try {
+    const studentId = req.params.studentId || req.user.student?.id;
+
+    if (!studentId) {
+      return ApiResponse.error(res, 'Student ID required', 400);
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { name: true, email: true } },
+        enrollments: { include: { course: true } },
+      },
+    });
+
+    if (!student) {
+      return ApiResponse.error(res, 'Student not found', 404);
+    }
+
+    const upcomingExams = await prisma.examination.findMany({
+      include: { course: true },
+      take: 5,
+    });
+
+    const schedule = await generateExamStudySchedule(student, upcomingExams);
+
+    await prisma.aiInsight.create({
+      data: {
+        userId: req.user.id,
+        studentId: student.id,
+        insightType: 'EXAM_SCHEDULE',
+        title: schedule.scheduleTitle,
+        summary: schedule.summary,
+        actionItems: JSON.stringify(schedule.reminders),
+        rawDataJson: JSON.stringify(schedule),
+      },
+    });
+
+    return ApiResponse.success(res, 'Gemini AI Exam Schedule generated successfully', {
+      studentName: student.user.name,
+      schedule,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const sendExamReminders = async (req, res, next) => {
+  try {
+    const { studentId, telegramChatId, sendEmail, sendTelegram } = req.body;
+    const sId = studentId || req.user.student?.id;
+
+    if (!sId) {
+      return ApiResponse.error(res, 'Student ID required', 400);
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: sId },
+      include: { user: true },
+    });
+
+    if (!student) {
+      return ApiResponse.error(res, 'Student not found', 404);
+    }
+
+    const upcomingExams = await prisma.examination.findMany({
+      include: { course: true },
+    });
+
+    const schedule = await generateExamStudySchedule(student, upcomingExams);
+
+    let emailSent = false;
+    let telegramSent = false;
+
+    if (sendEmail !== false && student.user.email) {
+      const emailRes = await sendExamScheduleEmail(student.user.email, student.user.name, schedule);
+      emailSent = emailRes.success;
+    }
+
+    if (sendTelegram !== false && telegramChatId) {
+      telegramSent = await sendExamScheduleTelegram(telegramChatId, student.user.name, schedule);
+    }
+
+    return ApiResponse.success(res, 'Exam study schedule reminders dispatched', {
+      studentName: student.user.name,
+      dispatchStatus: { emailSent, telegramSent },
+      scheduleTitle: schedule.scheduleTitle,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const chatWithAssistant = async (req, res, next) => {
   try {
     const { prompt } = req.body;
@@ -110,5 +207,7 @@ const chatWithAssistant = async (req, res, next) => {
 module.exports = {
   getStudentAiAnalysis,
   getTeacherClassAiAnalysis,
+  generateExamSchedule,
+  sendExamReminders,
   chatWithAssistant,
 };

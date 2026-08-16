@@ -77,8 +77,46 @@ const sendRiskAlertEmail = async (toEmail, studentName, riskLevel, attendance, c
   });
 };
 
+const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
+  const dailyPlanHtml = (schedule.dailyPlan || [])
+    .map(
+      (item) => `
+      <div style="margin-bottom: 12px; padding: 12px; background: #ffffff; border-left: 4px solid #4f46e5; border-radius: 4px;">
+        <strong style="color: #1e1b4b;">${item.day} (${item.date}) — ${item.focusSubject}</strong>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #475569;">Target Duration: ${item.recommendedDuration}</p>
+        <ul style="margin: 6px 0 0 16px; padding: 0; font-size: 13px; color: #334155;">
+          ${(item.tasks || []).map((t) => `<li>${t}</li>`).join('')}
+        </ul>
+      </div>
+    `
+    )
+    .join('');
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background: #f8fafc; border-radius: 8px;">
+      <h2 style="color: #4f46e5;">📅 SmartEdu Gemini AI — Upcoming Exam Study Schedule</h2>
+      <p>Hello <strong>${studentName}</strong>,</p>
+      <p>Your personalized Gemini AI exam study schedule has been generated:</p>
+      <div style="background: #eef2ff; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <h3 style="margin-top: 0; color: #3730a3;">${schedule.scheduleTitle}</h3>
+        <p style="margin-bottom: 0; font-size: 14px; color: #4338ca;">${schedule.summary}</p>
+      </div>
+      ${dailyPlanHtml}
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #64748b;">SmartEdu AI Exam Preparation & Alert System</p>
+    </div>
+  `;
+
+  return sendMail({
+    to: toEmail,
+    subject: `📅 AI Exam Study Schedule & Daily Reminders — ${studentName}`,
+    html,
+  });
+};
+
 module.exports = {
   sendMail,
   sendWelcomeEmail,
   sendRiskAlertEmail,
+  sendExamScheduleEmail,
 };
