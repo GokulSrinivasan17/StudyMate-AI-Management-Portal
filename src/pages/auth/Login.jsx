@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { GraduationCap, LogIn, Sparkles, User, GraduationCap as TeacherIcon, ShieldCheck, Eye, EyeOff, Lock, Mail, RefreshCw } from 'lucide-react';
+import { GraduationCap, LogIn, Sparkles, User, GraduationCap as TeacherIcon, Eye, EyeOff, Lock, Mail, RefreshCw } from 'lucide-react';
 
 export const Login = () => {
   const [email, setEmail] = useState('student@smartedu.ai');
@@ -19,13 +19,11 @@ export const Login = () => {
     setLoading(true);
     let demoEmail = 'student@smartedu.ai';
     if (targetRole === 'teacher') demoEmail = 'teacher@smartedu.ai';
-    if (targetRole === 'admin') demoEmail = 'admin@smartedu.ai';
 
     try {
       const loggedUser = await login(demoEmail, 'password123', targetRole);
       addToast(`Authenticated as ${loggedUser.name} (${targetRole.toUpperCase()})!`, 'success', 'Demo Authentication');
       if (targetRole === 'teacher') navigate('/teacher/dashboard');
-      else if (targetRole === 'admin') navigate('/admin/dashboard');
       else navigate('/student/dashboard');
     } catch {
       addToast('Demo login failed.', 'error');
@@ -70,32 +68,23 @@ export const Login = () => {
             <span className="text-[10px] text-slate-400 font-mono">Buildathon 2026</span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <button
               type="button"
               onClick={() => handleDemoLogin('student')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-2 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
             >
               <User className="w-4 h-4 text-amber-300" />
-              <span className="text-[10px]">Student Demo</span>
+              <span className="text-[11px]">Student Demo</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleDemoLogin('teacher')}
-              className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-2 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 px-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
             >
               <TeacherIcon className="w-4 h-4 text-purple-200" />
-              <span className="text-[10px]">Teacher Demo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('admin')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-2 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-200" />
-              <span className="text-[10px]">Dean Demo</span>
+              <span className="text-[11px]">Teacher Demo</span>
             </button>
           </div>
         </div>
