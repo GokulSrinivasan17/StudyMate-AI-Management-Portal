@@ -8,7 +8,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
 
-  const defaultEmail = user?.email || 'poovarasan420122@gmail.com';
+  const defaultEmail = user?.email || 'kit28.24cs117@gmail.com';
   const defaultChatId = '6640386706';
 
   const [loading, setLoading] = useState(false);
@@ -96,7 +96,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-xl font-bold">Gemini AI Exam Schedule & Reminders Engine</h2>
-              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan powered by Gmail SMTP & Telegram Bot</p>
+              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan powered by Resend API & Telegram Bot</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors">
@@ -191,26 +191,18 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                           dispatchResult.emailStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
                           {dispatchResult.emailStatus?.sent
-                            ? (dispatchResult.emailStatus?.provider || 'Sent')
+                            ? (dispatchResult.emailStatus?.provider || 'Sent via Resend')
                             : 'Failed'}
                         </span>
                       </div>
                       <p className="text-slate-600 font-mono text-[11px] truncate">Target: {dispatchResult.recipientEmail}</p>
 
-                      {dispatchResult.emailStatus?.error && (
-                        <p className="text-[11px] text-rose-600 font-medium">{dispatchResult.emailStatus.error}</p>
+                      {dispatchResult.emailStatus?.messageId && (
+                        <p className="text-[10px] text-emerald-700 font-mono truncate">Resend Email ID: {dispatchResult.emailStatus.messageId}</p>
                       )}
 
-                      {dispatchResult.emailStatus?.previewUrl && (
-                        <a
-                          href={dispatchResult.emailStatus.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline pt-1"
-                        >
-                          <span>View Live Email Preview</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                      {dispatchResult.emailStatus?.error && (
+                        <p className="text-[11px] text-rose-600 font-medium leading-tight">{dispatchResult.emailStatus.error}</p>
                       )}
                     </div>
 
@@ -274,7 +266,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     </div>
                     <input
                       type="email"
-                      placeholder="e.g. poovarasan420122@gmail.com"
+                      placeholder="e.g. kit28.24cs117@gmail.com"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
@@ -307,7 +299,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="pt-2 flex items-center justify-between flex-wrap gap-4">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Telegram messages sent directly to <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> (Chat ID: 6640386706).</span>
+                    <span>Telegram alerts sent to <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a>.</span>
                   </div>
 
                   <button
