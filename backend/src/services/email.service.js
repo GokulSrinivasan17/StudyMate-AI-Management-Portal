@@ -43,7 +43,6 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
     return { success: false, error: `Invalid email address format: "${recipient}"` };
   }
 
-  const apiKey = process.env.RESEND_API_KEY || env.RESEND_API_KEY;
   const payload = {
     from: 'SmartEdu AI <onboarding@resend.dev>',
     to: recipient,
@@ -53,39 +52,63 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
 
   console.log('[email.service] Sending payload:', JSON.stringify({ from: payload.from, to: payload.to, subject: payload.subject }, null, 2));
 
-  if (apiKey && !apiKey.includes('placeholder')) {
+  // 1. Try Resend API first if key exists
+  const resendKey = process.env.RESEND_API_KEY || env.RESEND_API_KEY;
+  if (resendKey && !resendKey.includes('placeholder')) {
     try {
-      const resend = new Resend(apiKey);
+      const resend = new Resend(resendKey);
       const { data, error } = await resend.emails.send(payload);
 
-      console.log('[email.service] Resend response data:', JSON.stringify(data, null, 2));
-      console.error('[email.service] Resend response error:', JSON.stringify(error, null, 2));
-
       if (!error && data?.id) {
-        console.log('[email.service] Email sent, id:', data.id);
+        console.log('[email.service] Sent via Resend API, id:', data.id);
         return { success: true, id: data.id, messageId: data.id, provider: 'Resend API' };
       }
 
-      const resendErrorMsg = error?.message || 'Resend API call returned an error';
-      console.warn(`[email.service] Resend API failed (${resendErrorMsg}). Attempting Live Preview fallback...`);
-    } catch (err) {
-      console.error('[email.service] Resend exception:', err.message);
+      console.warn(`[email.service] Resend API error (${error?.message || 'invalid key'}). Trying Gmail / Fallback...`);
+    } catch (rErr) {
+      console.warn('[email.service] Resend exception:', rErr.message);
     }
   }
 
-  // Fallback test transport to guarantee live HTML preview url
+  // 2. Try Gmail SMTP if credentials exist
+  const gmailUser = env.GMAIL_USER || process.env.GMAIL_USER;
+  const gmailPass = env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+  if (gmailUser && gmailPass && gmailPass.length >= 16) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: gmailUser, pass: gmailPass },
+        tls: { rejectUnauthorized: false },
+      });
+
+      const info = await transporter.sendMail({
+        from: `"SmartEdu AI" <${gmailUser}>`,
+        to: recipient,
+        subject: payload.subject,
+        html: payload.html,
+      });
+
+      console.log(`[email.service] Sent via Gmail SMTP to ${recipient}: ${info.messageId}`);
+      return { success: true, id: info.messageId, messageId: info.messageId, provider: 'Gmail SMTP' };
+    } catch (gErr) {
+      console.warn('[email.service] Gmail SMTP attempt failed:', gErr.message);
+    }
+  }
+
+  // 3. Fallback to Ethereal Test Transport to guarantee clickable HTML preview link
   try {
     const testAccount = await nodemailer.createTestAccount();
-    const transporter = nodemailer.createTransport({
+    const testTransporter = nodemailer.createTransport({
       host: testAccount.smtp.host,
       port: testAccount.smtp.port,
       secure: testAccount.smtp.secure,
       auth: { user: testAccount.user, pass: testAccount.pass },
     });
 
-    const info = await transporter.sendMail(payload);
+    const info = await testTransporter.sendMail(payload);
     const previewUrl = nodemailer.getTestMessageUrl(info);
-    console.log(`[email.service] Email fallback sent via Live Preview to ${recipient}! Preview: ${previewUrl}`);
+    console.log(`[email.service] Delivered via Live Email Preview to ${recipient}: ${previewUrl}`);
     return {
       success: true,
       id: info.messageId,
@@ -94,7 +117,7 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
       provider: 'Live Email Preview',
     };
   } catch (fallbackErr) {
-    console.error('[email.service] Fallback transport error:', fallbackErr.message);
+    console.error('[email.service] Fallback error:', fallbackErr.message);
     return { success: false, error: 'Failed to send email' };
   }
 };
