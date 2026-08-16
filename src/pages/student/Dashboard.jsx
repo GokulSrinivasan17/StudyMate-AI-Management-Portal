@@ -4,6 +4,7 @@ import { studentService } from '../../services/studentService';
 import { StatCard } from '../../components/common/StatCard';
 import { AIInsightCard } from '../../components/ai/AIInsightCard';
 import { LiveRiskAnalyzerModal } from '../../components/ai/LiveRiskAnalyzerModal';
+import { ExamScheduleModal } from '../../components/ai/ExamScheduleModal';
 import {
   Award,
   CalendarCheck,
@@ -13,7 +14,11 @@ import {
   ArrowRight,
   Sparkles,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Calendar,
+  Bell,
+  Mail,
+  Send
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -33,6 +38,7 @@ export const StudentDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [liveModalOpen, setLiveModalOpen] = useState(false);
+  const [examScheduleOpen, setExamScheduleOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,12 +84,43 @@ export const StudentDashboard = () => {
           </p>
         </div>
 
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setExamScheduleOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 hover:scale-105"
+          >
+            <Calendar className="w-4 h-4 text-amber-300" />
+            <span>Gemini AI Exam Schedule</span>
+          </button>
+
+          <button
+            onClick={() => setLiveModalOpen(true)}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 animate-pulse hover:scale-105"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>Run Live AI Risk Analysis</span>
+          </button>
+        </div>
+      </div>
+
+      {/* NEW: Gemini AI Exam Schedule & Reminders Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-3xl border border-indigo-900 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" /> Powered by Google Gemini AI & Telegram/Email Reminders
+          </div>
+          <h2 className="text-xl font-extrabold">📅 Gemini AI Exam Schedule & Reminders Engine</h2>
+          <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+            Generates day-by-day revision schedules for upcoming exams tailored to your weak subjects, and dispatches daily study task reminders via Gmail SMTP (<code className="text-indigo-300 font-mono">studymate.hackathon@gmail.com</code>) & Telegram Bot (<code className="text-indigo-300 font-mono">8721806166:AAGv...</code>).
+          </p>
+        </div>
+
         <button
-          onClick={() => setLiveModalOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 animate-pulse hover:scale-105"
+          onClick={() => setExamScheduleOpen(true)}
+          className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs px-6 py-3.5 rounded-2xl transition-all shadow-lg shrink-0 flex items-center gap-2.5 hover:scale-105 active:scale-95 relative z-10"
         >
-          <Sparkles className="w-4 h-4 text-amber-300" />
-          <span>Run Live AI Risk Analysis</span>
+          <Calendar className="w-4 h-4 text-indigo-600" />
+          <span>Launch Exam Schedule & Dispatch Reminders</span>
         </button>
       </div>
 
@@ -244,7 +281,9 @@ export const StudentDashboard = () => {
         </div>
       </div>
 
+      {/* Modals */}
       <LiveRiskAnalyzerModal isOpen={liveModalOpen} onClose={() => setLiveModalOpen(false)} />
+      <ExamScheduleModal isOpen={examScheduleOpen} onClose={() => setExamScheduleOpen(false)} />
     </div>
   );
 };
