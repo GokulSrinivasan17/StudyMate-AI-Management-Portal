@@ -1,0 +1,242 @@
+// Prisma Schema for Education Management Portal Backend (SQLite)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          String         @default("STUDENT") // ADMIN, TEACHER, STUDENT
+  phone         String?
+  avatar        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  student       Student?
+  teacher       Teacher?
+  notifications Notification[]
+  aiInsights    AiInsight[]
+}
+
+model Student {
+  id              String                 @id @default(uuid())
+  userId          String                 @unique
+  rollNo          String                 @unique
+  department      String
+  semester        Int                    @default(1)
+  section         String                 @default("A")
+  batch           String                 @default("2024-2028")
+  cgpa            Float                  @default(0.0)
+  attendanceRate  Float                  @default(100.0)
+  riskLevel       String                 @default("LOW") // LOW, MEDIUM, HIGH
+  parentName      String?
+  parentPhone     String?
+  parentEmail     String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments     Enrollment[]
+  submissions     AssignmentSubmission[]
+  attendances     Attendance[]
+  examResults     ExamResult[]
+  academicRecords AcademicRecord[]
+}
+
+model Teacher {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  employeeId     String    @unique
+  department     String
+  qualification  String?
+  designation    String    @default("Assistant Professor")
+  specialization String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses        Course[]
+  classes        Class[]
+}
+
+model Course {
+  id          String        @id @default(uuid())
+  code        String        @unique
+  name        String
+  department  String
+  credits     Int           @default(3)
+  semester    Int           @default(1)
+  description String?
+  teacherId   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  teacher     Teacher?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  classes     Class[]
+  enrollments Enrollment[]
+  assignments Assignment[]
+  exams       Examination[]
+}
+
+model Class {
+  id           String       @id @default(uuid())
+  name         String
+  courseId     String
+  teacherId    String?
+  roomNo       String?
+  scheduleTime String?
+  department   String
+  semester     Int          @default(1)
+  section      String       @default("A")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher     Teacher?      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  attendances Attendance[]
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  studentId  String
+  courseId   String
+  status     String   @default("ACTIVE") // ACTIVE, COMPLETED, DROPPED
+  enrolledAt DateTime @default(now())
+
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model Assignment {
+  id          String                 @id @default(uuid())
+  title       String
+  description String?
+  courseId    String
+  dueDate     DateTime
+  totalMarks  Float                  @default(100.0)
+  fileUrl     String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id             String     @id @default(uuid())
+  assignmentId   String
+  studentId      String
+  submissionDate DateTime   @default(now())
+  content        String?
+  fileUrl        String?
+  marksObtained  Float?
+  status         String     @default("SUBMITTED") // SUBMITTED, GRADED, LATE, MISSING
+  feedback       String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  classId   String
+  studentId String
+  date      DateTime
+  status    String   @default("PRESENT") // PRESENT, ABSENT, LATE
+  remarks   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId, date])
+}
+
+model Examination {
+  id         String       @id @default(uuid())
+  title      String
+  courseId   String
+  examDate   DateTime
+  examType   String       @default("MIDTERM") // MIDTERM, INTERNAL, FINAL, QUIZ
+  maxMarks   Float        @default(100.0)
+  roomNo     String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  results    ExamResult[]
+}
+
+model ExamResult {
+  id            String      @id @default(uuid())
+  examId        String
+  studentId     String
+  marksObtained Float
+  grade         String?
+  remarks       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  exam          Examination @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+model AcademicRecord {
+  id            String   @id @default(uuid())
+  studentId     String
+  semester      Int
+  gpa           Float
+  creditsEarned Int
+  totalCredits  Int
+  backlogs      Int      @default(0)
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, semester])
+}
+
+model AiInsight {
+  id            String   @id @default(uuid())
+  userId        String?
+  studentId     String?
+  insightType   String   // WEAK_SUBJECT, RISK_ALERT, RECOMMENDATION, CLASS_SUMMARY
+  title         String
+  summary       String
+  actionItems   String?  // JSON string or comma-separated list
+  riskScore     Float?
+  rawDataJson   String?
+  createdAt     DateTime @default(now())
+
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, ALERT, URGENT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

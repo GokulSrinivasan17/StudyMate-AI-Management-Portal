@@ -1,0 +1,146 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SmartEdu AI - Education Management Portal API",
+    "version": "1.0.0",
+    "description": "Production-ready RESTful API backend for Education Management Portal featuring Node.js, Express, Prisma ORM, Gemini AI, Telegram Bot, and Email Services."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["Authentication"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "student@smartedu.ai" },
+                  "password": { "type": "string", "example": "password123" },
+                  "name": { "type": "string", "example": "Harish Kolanjiyappan" },
+                  "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"], "example": "STUDENT" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User registered successfully" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login user and retrieve JWT token",
+        "tags": ["Authentication"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "student@smartedu.ai" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get logged in user details",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": { "description": "Current user object" }
+        }
+      }
+    },
+    "/students": {
+      "get": {
+        "summary": "List all students with pagination & search",
+        "tags": ["Students"],
+        "responses": {
+          "200": { "description": "Paginated student list" }
+        }
+      }
+    },
+    "/ai/student-analysis/{studentId}": {
+      "get": {
+        "summary": "Generate Gemini AI risk analysis & insights for student",
+        "tags": ["AI Services"],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "AI Insights generated successfully" }
+        }
+      }
+    },
+    "/ai/chat": {
+      "post": {
+        "summary": "Interact with SmartEdu Gemini AI Assistant",
+        "tags": ["AI Services"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": { "type": "string", "example": "How can I improve my CGPA in Computer Networks?" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "AI Tutor Response" }
+        }
+      }
+    },
+    "/reports/admin-stats": {
+      "get": {
+        "summary": "Get admin portal dashboard statistics",
+        "tags": ["Reports & Analytics"],
+        "responses": {
+          "200": { "description": "Institutional summary" }
+        }
+      }
+    }
+  }
+}
