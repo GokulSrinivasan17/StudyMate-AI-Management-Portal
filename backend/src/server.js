@@ -53,6 +53,14 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 SmartEdu AI Backend Server Running on Port: ${PORT}`);
   console.log(`📡 Base API Endpoint: http://localhost:${PORT}/api`);
   console.log(`📚 Swagger Documentation: http://localhost:${PORT}/api-docs`);
+  
+  if (!process.env.RESEND_API_KEY && !env.RESEND_API_KEY) {
+    console.error(`⚠️ [STARTUP WARNING] RESEND_API_KEY is missing or empty in .env`);
+  } else {
+    const keyVal = process.env.RESEND_API_KEY || env.RESEND_API_KEY;
+    console.log(`📧 [STARTUP INFO] RESEND_API_KEY loaded: ${keyVal.substring(0, 10)}...`);
+  }
+  
   console.log(`==================================================`);
 
   // Initialize background daily reminder cron runner

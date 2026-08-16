@@ -47,24 +47,29 @@ const sendMail = async ({ to, subject, html, text }) => {
 
   if (!resend || !resendApiKey) {
     console.error('[email.service] Missing RESEND_API_KEY in environment.');
-    return { success: false, error: 'RESEND_API_KEY is not set in environment.' };
+    return { success: false, error: 'RESEND_API_KEY is missing in backend .env file.' };
   }
 
+  const payload = {
+    from: 'SmartEdu AI <onboarding@resend.dev>',
+    to: recipient,
+    subject: subject || 'SmartEdu AI Notification',
+    html: html || `<p>${text}</p>`,
+  };
+
+  console.log('[email.service] Sending payload:', JSON.stringify(payload, null, 2));
+
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'SmartEdu AI <onboarding@resend.dev>',
-      to: recipient,
-      subject: subject || 'SmartEdu AI Notification',
-      html: html || `<p>${text}</p>`,
-    });
+    const { data, error } = await resend.emails.send(payload);
 
     if (error) {
-      console.error('[email.service] Resend error:', error);
-      return { success: false, error: error.message || JSON.stringify(error) };
+      console.error('[email.service] Resend error:', JSON.stringify(error, null, 2));
+      const errorMsg = error.message || error.name || JSON.stringify(error);
+      return { success: false, error: errorMsg, rawError: error };
     }
 
-    console.log('[email.service] Email sent, id:', data.id);
-    return { success: true, id: data.id, messageId: data.id, provider: 'Resend API' };
+    console.log('[email.service] Email sent, id:', data?.id);
+    return { success: true, id: data?.id, messageId: data?.id, provider: 'Resend API' };
   } catch (err) {
     console.error('[email.service] Unexpected error:', err);
     return { success: false, error: err.message || 'Failed to send email' };
@@ -81,24 +86,30 @@ const sendExamScheduleEmail = async (toEmail, studentName, schedule) => {
 
   if (!resend || !resendApiKey) {
     console.error('[email.service] Missing RESEND_API_KEY in environment.');
-    return { success: false, error: 'RESEND_API_KEY is not set in environment.' };
+    return { success: false, error: 'RESEND_API_KEY is missing in backend .env file.' };
   }
 
+  const payload = {
+    from: 'SmartEdu AI <onboarding@resend.dev>',
+    to: recipient,
+    subject: `Your AI Exam Revision Schedule, ${studentName || 'Student'}`,
+    html: buildStudyPlanHtml(studentName, schedule),
+  };
+
+  console.log('[email.service] Sending payload:', JSON.stringify(payload, null, 2));
+
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'SmartEdu AI <onboarding@resend.dev>',
-      to: recipient,
-      subject: `Your AI Exam Revision Schedule, ${studentName || 'Student'}`,
-      html: buildStudyPlanHtml(studentName, schedule),
-    });
+    const { data, error } = await resend.emails.send(payload);
 
     if (error) {
-      console.error('[email.service] Resend error:', error);
-      return { success: false, error: error.message || JSON.stringify(error) };
+      console.error('[email.service] Resend response error:', JSON.stringify(error, null, 2));
+      const errorMsg = error.message || error.name || JSON.stringify(error);
+      return { success: false, error: errorMsg, rawError: error };
     }
 
-    console.log('[email.service] Email sent, id:', data.id);
-    return { success: true, id: data.id, messageId: data.id, provider: 'Resend API' };
+    console.log('[email.service] Resend response data:', JSON.stringify(data, null, 2));
+    console.log('[email.service] Email sent, id:', data?.id);
+    return { success: true, id: data?.id, messageId: data?.id, provider: 'Resend API' };
   } catch (err) {
     console.error('[email.service] Unexpected error:', err);
     return { success: false, error: err.message || 'Failed to send email' };
