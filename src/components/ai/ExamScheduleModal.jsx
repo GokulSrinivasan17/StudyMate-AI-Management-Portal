@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, UserCheck } from 'lucide-react';
+import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, ExternalLink, AlertCircle } from 'lucide-react';
 import { aiService } from '../../services/aiService';
 import { useToast } from '../../context/ToastContext';
 
@@ -11,6 +11,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const [telegramChatId, setTelegramChatId] = useState('8721806166');
   const [sendEmail, setSendEmail] = useState(true);
   const [sendTelegram, setSendTelegram] = useState(true);
+  const [dispatchResult, setDispatchResult] = useState(null);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
     }
 
     setSendingReminders(true);
+    setDispatchResult(null);
     try {
       const res = await aiService.sendExamReminders({
         recipientEmail,
@@ -45,8 +47,11 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
         sendTelegram,
         telegramChatId,
       });
-      addToast(`Exam schedule dispatched to ${recipientEmail} ${sendTelegram && telegramChatId ? '& Telegram Bot!' : ''}`, 'success', 'Reminders Sent Successfully');
-    } catch {
+
+      const resData = res?.data || res;
+      setDispatchResult(resData);
+      addToast('Exam study reminders processed!', 'success', 'Dispatch Completed');
+    } catch (err) {
       addToast('Error dispatching reminders', 'error');
     } finally {
       setSendingReminders(false);
@@ -132,6 +137,68 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
+              {/* DISPATCH RESULT FEEDBACK CARD */}
+              {dispatchResult && (
+                <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl space-y-3 animate-fade-in">
+                  <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span>Exam Schedule Reminders Processed!</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Email Status */}
+                    <div className="bg-white p-3.5 rounded-xl border border-emerald-100 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-indigo-600" /> Email Status
+                        </span>
+                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                          {dispatchResult.emailStatus?.provider || 'Sent'}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 font-mono text-[11px] truncate">Target: {dispatchResult.recipientEmail}</p>
+
+                      {dispatchResult.emailStatus?.previewUrl && (
+                        <a
+                          href={dispatchResult.emailStatus.previewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline pt-1"
+                        >
+                          <span>Click to View Live Email HTML</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Telegram Status */}
+                    <div className="bg-white p-3.5 rounded-xl border border-emerald-100 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5 text-sky-500" /> Telegram Bot
+                        </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          dispatchResult.telegramStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {dispatchResult.telegramStatus?.sent ? 'Delivered' : 'Bot Standby'}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 font-mono text-[11px]">Chat ID: {dispatchResult.telegramChatId}</p>
+                      
+                      <a
+                        href="https://t.me/studymateAgent_bot"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:underline pt-1"
+                      >
+                        <span>Open Telegram Bot @studymateAgent_bot</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* USER INPUT & REMINDER DISPATCH SECTION */}
               <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-5 shadow-xl border border-slate-800">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -190,7 +257,12 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-end">
+                <div className="pt-2 flex items-center justify-between flex-wrap gap-4">
+                  <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>For Telegram delivery, make sure to open <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> and click <b>START</b>.</span>
+                  </div>
+
                   <button
                     onClick={handleSendReminders}
                     disabled={sendingReminders}

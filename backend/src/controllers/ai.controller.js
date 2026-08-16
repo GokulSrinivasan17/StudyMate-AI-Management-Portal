@@ -166,25 +166,34 @@ const sendExamReminders = async (req, res, next) => {
 
     const schedule = await generateExamStudySchedule(student, upcomingExams);
 
-    let emailSent = false;
-    let telegramSent = false;
+    let emailResult = { success: false };
+    let telegramResult = { success: false };
 
     const emailTarget = recipientEmail || student.user.email || 'studymate.hackathon@gmail.com';
 
     if (sendEmail !== false && emailTarget) {
-      const emailRes = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
-      emailSent = emailRes.success;
+      emailResult = await sendExamScheduleEmail(emailTarget, student.user.name, schedule);
     }
 
     if (sendTelegram !== false && telegramChatId) {
-      telegramSent = await sendExamScheduleTelegram(telegramChatId, student.user.name, schedule);
+      telegramResult = await sendExamScheduleTelegram(telegramChatId, student.user.name, schedule);
     }
 
-    return ApiResponse.success(res, `Exam study schedule reminders dispatched to ${emailTarget}`, {
+    return ApiResponse.success(res, `Exam study schedule reminders dispatched`, {
       studentName: student.user.name,
       recipientEmail: emailTarget,
       telegramChatId: telegramChatId || 'Not provided',
-      dispatchStatus: { emailSent, telegramSent },
+      emailStatus: {
+        sent: emailResult.success,
+        provider: emailResult.provider || 'Failed',
+        previewUrl: emailResult.previewUrl || null,
+        messageId: emailResult.messageId || null,
+      },
+      telegramStatus: {
+        sent: telegramResult.success,
+        error: telegramResult.error || null,
+        botUrl: 'https://t.me/studymateAgent_bot',
+      },
       scheduleTitle: schedule.scheduleTitle,
     });
   } catch (error) {
