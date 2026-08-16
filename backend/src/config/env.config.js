@@ -11,8 +11,9 @@ const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
-  EMAIL_USER: process.env.EMAIL_USER || 'studymate.hackathon@gmail.com',
-  EMAIL_PASS: process.env.EMAIL_PASS || '',
+  TELEGRAM_BOT_USERNAME: process.env.TELEGRAM_BOT_USERNAME || '@studymateAgent_bot',
+  GMAIL_USER: process.env.GMAIL_USER || process.env.EMAIL_USER || '',
+  GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS || '',
 };
 
 module.exports = env;

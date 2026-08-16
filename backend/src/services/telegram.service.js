@@ -3,14 +3,43 @@ const env = require('../config/env.config');
 
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
 
-const sendTelegramMessage = async (chatId, messageText) => {
+const getOrValidateChatId = async (chatId) => {
   try {
     if (!env.TELEGRAM_BOT_TOKEN) {
-      console.warn('Telegram Token not configured');
-      return { success: false, error: 'Telegram Token not configured' };
+      return { valid: false, error: 'Telegram Bot Token not configured on server.' };
     }
 
-    // Try HTML mode first for robust rendering
+    if (!chatId) {
+      return { valid: false, error: 'Telegram Chat ID is required.' };
+    }
+
+    const response = await axios.get(`${TELEGRAM_API_URL}/getChat`, {
+      params: { chat_id: chatId },
+    });
+
+    if (response.data && response.data.ok) {
+      return { valid: true, chat: response.data.result };
+    }
+
+    return { valid: false, error: `Please open ${env.TELEGRAM_BOT_USERNAME} and press START first.` };
+  } catch (error) {
+    const desc = error.response?.data?.description || error.message;
+    console.error(`Telegram getChat validation failed for Chat ID ${chatId}:`, desc);
+    return {
+      valid: false,
+      error: `Please open ${env.TELEGRAM_BOT_USERNAME} on Telegram and press START first.`,
+      botUsername: env.TELEGRAM_BOT_USERNAME,
+    };
+  }
+};
+
+const sendTelegramMessage = async (chatId, messageText) => {
+  try {
+    const validation = await getOrValidateChatId(chatId);
+    if (!validation.valid) {
+      return { success: false, error: validation.error, botUsername: env.TELEGRAM_BOT_USERNAME };
+    }
+
     try {
       const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
         chat_id: chatId,
@@ -19,7 +48,7 @@ const sendTelegramMessage = async (chatId, messageText) => {
       });
       return { success: response.data && response.data.ok, data: response.data };
     } catch (htmlErr) {
-      // Fallback without parse_mode if entity parsing fails
+      // Fallback without parse_mode
       const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
         chat_id: chatId,
         text: messageText,
@@ -29,7 +58,7 @@ const sendTelegramMessage = async (chatId, messageText) => {
   } catch (error) {
     const errorMsg = error.response?.data?.description || error.message;
     console.error('Failed to send Telegram message:', errorMsg);
-    return { success: false, error: errorMsg, botUrl: 'https://t.me/studymateAgent_bot' };
+    return { success: false, error: errorMsg, botUsername: env.TELEGRAM_BOT_USERNAME };
   }
 };
 
@@ -57,6 +86,7 @@ const sendTelegramBroadcast = async (chatIds = [], messageTitle, messageBody) =>
 };
 
 module.exports = {
+  getOrValidateChatId,
   sendTelegramMessage,
   sendStudentRiskAlert,
   sendExamScheduleTelegram,

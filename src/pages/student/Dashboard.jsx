@@ -111,7 +111,7 @@ export const StudentDashboard = () => {
           </div>
           <h2 className="text-xl font-extrabold">📅 Gemini AI Exam Schedule & Reminders Engine</h2>
           <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-            Generates day-by-day revision schedules for upcoming exams tailored to your weak subjects, and dispatches daily study task reminders via Gmail SMTP (<code className="text-indigo-300 font-mono">studymate.hackathon@gmail.com</code>) & Telegram Bot (<code className="text-indigo-300 font-mono">8721806166:AAGv...</code>).
+            Generates day-by-day revision schedules for upcoming exams tailored to your weak subjects, and dispatches daily study task reminders via Gmail SMTP & Telegram Bot (@studymateAgent_bot).
           </p>
         </div>
 

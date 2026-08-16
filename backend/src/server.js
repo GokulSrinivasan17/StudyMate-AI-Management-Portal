@@ -9,6 +9,7 @@ const env = require('./config/env.config');
 const routes = require('./routes');
 const errorHandler = require('./middleware/error.middleware');
 const swaggerSpec = require('./swagger/swagger.json');
+const { startReminderCron } = require('./cron/reminderScheduler.cron');
 
 const app = express();
 
@@ -53,6 +54,13 @@ const server = app.listen(PORT, () => {
   console.log(`📡 Base API Endpoint: http://localhost:${PORT}/api`);
   console.log(`📚 Swagger Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`==================================================`);
+
+  // Initialize background daily reminder cron runner
+  try {
+    startReminderCron();
+  } catch (cronErr) {
+    console.error('Failed to initialize reminder cron:', cronErr.message);
+  }
 });
 
 module.exports = { app, server };

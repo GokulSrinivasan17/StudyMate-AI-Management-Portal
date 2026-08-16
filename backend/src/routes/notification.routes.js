@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notification.controller');
-const validate = require('../middleware/validate.middleware');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth.middleware');
-const { sendNotificationSchema } = require('../utils/validation.schemas');
+const { authenticateToken } = require('../middleware/auth.middleware');
 
 router.use(authenticateToken);
 
-router.get('/', notificationController.getMyNotifications);
-router.post('/send', authorizeRoles('ADMIN', 'TEACHER'), validate(sendNotificationSchema), notificationController.sendNotification);
+router.post('/test-email', notificationController.testEmailNotification);
+router.post('/test-telegram', notificationController.testTelegramNotification);
 
 module.exports = router;

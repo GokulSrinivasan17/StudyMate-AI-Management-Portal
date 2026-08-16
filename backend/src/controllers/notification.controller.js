@@ -1,63 +1,88 @@
-const prisma = require('../config/prisma.config');
 const ApiResponse = require('../utils/apiResponse.utils');
-const { sendMail } = require('../services/email.service');
-const { sendTelegramMessage } = require('../services/telegram.service');
+const { sendExamScheduleEmail } = require('../services/email.service');
+const { sendExamScheduleTelegram, getOrValidateChatId } = require('../services/telegram.service');
 
-const getMyNotifications = async (req, res, next) => {
+const testEmailNotification = async (req, res, next) => {
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { email } = req.body;
+    const targetEmail = email || req.user.email;
 
-    return ApiResponse.success(res, 'Notifications retrieved', notifications);
+    if (!targetEmail) {
+      return ApiResponse.error(res, 'Target email address required', 400);
+    }
+
+    const mockSchedule = {
+      scheduleTitle: 'Test AI Exam Revision Plan',
+      summary: 'Verification test email sent from SmartEdu Notification Controller.',
+      dailyPlan: [
+        {
+          day: 'Day 1',
+          date: '2026-08-18',
+          focusSubject: 'Data Structures & Algorithms',
+          recommendedDuration: '2 Hours',
+          tasks: ['Verify Email Transport', 'Check HTML Layout formatting'],
+        },
+      ],
+    };
+
+    const result = await sendExamScheduleEmail(targetEmail, req.user.name, mockSchedule);
+
+    if (!result.success) {
+      return ApiResponse.error(res, result.error || 'Failed to send email, please check the address', 400);
+    }
+
+    return ApiResponse.success(res, `Test email sent successfully to ${targetEmail}`, {
+      recipient: targetEmail,
+      status: result,
+    });
   } catch (error) {
     next(error);
   }
 };
 
-const sendNotification = async (req, res, next) => {
+const testTelegramNotification = async (req, res, next) => {
   try {
-    const { userId, title, message, sendEmail, sendTelegram, telegramChatId } = req.body;
-    const targetUserId = userId || req.user.id;
+    const { telegramChatId } = req.body;
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId: targetUserId,
-        title,
-        message,
-        type: 'ALERT',
-      },
+    if (!telegramChatId) {
+      return ApiResponse.error(res, 'Telegram Chat ID required', 400);
+    }
+
+    const validation = await getOrValidateChatId(telegramChatId);
+    if (!validation.valid) {
+      return ApiResponse.error(res, validation.error, 400);
+    }
+
+    const mockSchedule = {
+      scheduleTitle: 'Test AI Exam Revision Plan',
+      summary: 'Verification test message sent from SmartEdu Notification Controller.',
+      dailyPlan: [
+        {
+          day: 'Day 1',
+          date: '2026-08-18',
+          focusSubject: 'Data Structures & Algorithms',
+          recommendedDuration: '2 Hours',
+          tasks: ['Verify Telegram Bot Dispatch', 'Check Telegram Chat ID'],
+        },
+      ],
+    };
+
+    const result = await sendExamScheduleTelegram(telegramChatId, req.user.name, mockSchedule);
+
+    if (!result.success) {
+      return ApiResponse.error(res, result.error || 'Failed to send Telegram message', 400);
+    }
+
+    return ApiResponse.success(res, `Test Telegram message sent to Chat ID ${telegramChatId}`, {
+      chatId: telegramChatId,
+      status: result,
     });
-
-    const recipientUser = await prisma.user.findUnique({ where: { id: targetUserId } });
-
-    let emailSent = false;
-    let telegramSent = false;
-
-    if (sendEmail && recipientUser?.email) {
-      const emailResult = await sendMail({
-        to: recipientUser.email,
-        subject: `SmartEdu Portal Notification: ${title}`,
-        html: `<h3>${title}</h3><p>${message}</p>`,
-      });
-      emailSent = emailResult.success;
-    }
-
-    if (sendTelegram && telegramChatId) {
-      telegramSent = await sendTelegramMessage(telegramChatId, `🔔 *${title}*\n\n${message}`);
-    }
-
-    return ApiResponse.success(res, 'Notification sent successfully', {
-      notification,
-      dispatchStatus: { emailSent, telegramSent },
-    }, 201);
   } catch (error) {
     next(error);
   }
 };
 
 module.exports = {
-  getMyNotifications,
-  sendNotification,
+  testEmailNotification,
+  testTelegramNotification,
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, ExternalLink, AlertCircle } from 'lucide-react';
+import { X, Sparkles, Calendar, Send, Mail, MessageSquare, CheckCircle2, Clock, BookOpen, Bell, ExternalLink, AlertCircle, AlertTriangle } from 'lucide-react';
 import { aiService } from '../../services/aiService';
 import { useToast } from '../../context/ToastContext';
 
@@ -7,16 +7,19 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [schedule, setSchedule] = useState(null);
-  const [recipientEmail, setRecipientEmail] = useState('studymate.hackathon@gmail.com');
-  const [telegramChatId, setTelegramChatId] = useState('8721806166');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
   const [sendTelegram, setSendTelegram] = useState(true);
   const [dispatchResult, setDispatchResult] = useState(null);
+  const [dispatchError, setDispatchError] = useState(null);
   const { addToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
       fetchSchedule();
+      setDispatchResult(null);
+      setDispatchError(null);
     }
   }, [isOpen]);
 
@@ -38,8 +41,20 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    if (sendEmail && !recipientEmail) {
+      addToast('Please enter a target email address', 'warning');
+      return;
+    }
+
+    if (sendTelegram && !telegramChatId) {
+      addToast('Please enter a Telegram Chat ID', 'warning');
+      return;
+    }
+
     setSendingReminders(true);
     setDispatchResult(null);
+    setDispatchError(null);
+
     try {
       const res = await aiService.sendExamReminders({
         recipientEmail,
@@ -48,11 +63,19 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
         telegramChatId,
       });
 
-      const resData = res?.data || res;
-      setDispatchResult(resData);
-      addToast('Exam study reminders processed!', 'success', 'Dispatch Completed');
+      if (res?.success === false) {
+        const errorMsg = res?.message || res?.error || 'Failed to dispatch reminders. Please check your inputs.';
+        setDispatchError(errorMsg);
+        addToast(errorMsg, 'error', 'Dispatch Failed');
+      } else {
+        const resData = res?.data || res;
+        setDispatchResult(resData);
+        addToast('Exam study reminders processed!', 'success', 'Dispatch Completed');
+      }
     } catch (err) {
-      addToast('Error dispatching reminders', 'error');
+      const errorMsg = err.response?.data?.message || err.message || 'Error dispatching reminders';
+      setDispatchError(errorMsg);
+      addToast(errorMsg, 'error', 'Dispatch Error');
     } finally {
       setSendingReminders(false);
     }
@@ -72,7 +95,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h2 className="text-xl font-bold">Gemini AI Exam Schedule & Reminders Engine</h2>
-              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan with custom Email & Telegram Bot dispatch</p>
+              <p className="text-xs text-slate-300">Automated day-by-day exam revision plan powered by Gmail SMTP & Telegram Bot</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors">
@@ -137,6 +160,17 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
+              {/* ERROR CARD IF DISPATCH FAILED */}
+              {dispatchError && (
+                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-start gap-3 text-rose-900 text-xs animate-fade-in">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="font-bold text-sm block">Dispatch Error</strong>
+                    <p className="mt-0.5 text-rose-800">{dispatchError}</p>
+                  </div>
+                </div>
+              )}
+
               {/* DISPATCH RESULT FEEDBACK CARD */}
               {dispatchResult && (
                 <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl space-y-3 animate-fade-in">
@@ -152,8 +186,10 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                         <span className="font-bold text-slate-800 flex items-center gap-1.5">
                           <Mail className="w-3.5 h-3.5 text-indigo-600" /> Email Status
                         </span>
-                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                          {dispatchResult.emailStatus?.provider || 'Sent'}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          dispatchResult.emailStatus?.sent ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {dispatchResult.emailStatus?.sent ? (dispatchResult.emailStatus?.provider || 'Sent') : 'Failed'}
                         </span>
                       </div>
                       <p className="text-slate-600 font-mono text-[11px] truncate">Target: {dispatchResult.recipientEmail}</p>
@@ -165,7 +201,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline pt-1"
                         >
-                          <span>Click to View Live Email HTML</span>
+                          <span>View Live Email Preview</span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
@@ -191,7 +227,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:underline pt-1"
                       >
-                        <span>Open Telegram Bot @studymateAgent_bot</span>
+                        <span>Open @studymateAgent_bot</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
@@ -227,7 +263,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     </div>
                     <input
                       type="email"
-                      placeholder="Enter target Email ID..."
+                      placeholder="e.g. student@example.com"
                       value={recipientEmail}
                       onChange={(e) => setRecipientEmail(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
@@ -238,7 +274,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                   <div className="space-y-2 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID / Bot Channel
+                        <MessageSquare className="w-4 h-4 text-sky-400" /> Telegram Chat ID
                       </label>
                       <input
                         type="checkbox"
@@ -249,7 +285,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     </div>
                     <input
                       type="text"
-                      placeholder="Enter Telegram Chat ID (e.g. 8721806166)..."
+                      placeholder="e.g. 123456789"
                       value={telegramChatId}
                       onChange={(e) => setTelegramChatId(e.target.value)}
                       className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
@@ -260,7 +296,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                 <div className="pt-2 flex items-center justify-between flex-wrap gap-4">
                   <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>For Telegram delivery, make sure to open <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> and click <b>START</b>.</span>
+                    <span>For Telegram delivery, open <a href="https://t.me/studymateAgent_bot" target="_blank" rel="noreferrer" className="text-sky-400 underline font-bold">@studymateAgent_bot</a> and press <b>START</b>.</span>
                   </div>
 
                   <button
@@ -273,7 +309,7 @@ export const ExamScheduleModal = ({ isOpen, onClose }) => {
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
-                    <span>Dispatch Reminders Now</span>
+                    <span>{sendingReminders ? 'Dispatching...' : 'Dispatch Reminders Now'}</span>
                   </button>
                 </div>
               </div>

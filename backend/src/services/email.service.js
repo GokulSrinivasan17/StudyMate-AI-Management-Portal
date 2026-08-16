@@ -3,19 +3,22 @@ const env = require('../config/env.config');
 
 const sendMail = async ({ to, subject, html, text }) => {
   try {
-    let transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+    if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) {
+      console.error('SMTP configuration missing: GMAIL_USER or GMAIL_APP_PASSWORD not set in environment.');
+      return { success: false, error: 'Email service configuration is incomplete on server.' };
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
       auth: {
-        user: env.EMAIL_USER,
-        pass: env.EMAIL_PASS,
+        user: env.GMAIL_USER,
+        pass: env.GMAIL_APP_PASSWORD,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from: `"SmartEdu AI Portal" <${env.EMAIL_USER}>`,
+      from: `"SmartEdu AI Portal" <${env.GMAIL_USER}>`,
       to,
       subject,
       text: text || html.replace(/<[^>]*>?/gm, ''),
@@ -24,30 +27,34 @@ const sendMail = async ({ to, subject, html, text }) => {
 
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(`Email sent via Gmail SMTP to ${to}: ${info.messageId}`);
+      console.log(`Email successfully sent via Gmail SMTP to ${to}: ${info.messageId}`);
       return { success: true, messageId: info.messageId, provider: 'Gmail SMTP' };
     } catch (gmailError) {
-      console.warn('Gmail SMTP Auth failed. Falling back to Ethereal Live Test Transport:', gmailError.message);
+      // Server-side logging only - never leak internal stack traces to client
+      console.error(`Gmail SMTP delivery failed to ${to}:`, gmailError.message);
       
-      const testAccount = await nodemailer.createTestAccount();
-      const testTransporter = nodemailer.createTransport({
-        host: testAccount.smtp.host,
-        port: testAccount.smtp.port,
-        secure: testAccount.smtp.secure,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
+      // Attempt fallback Ethereal preview for dev/test environment if requested
+      try {
+        const testAccount = await nodemailer.createTestAccount();
+        const testTransporter = nodemailer.createTransport({
+          host: testAccount.smtp.host,
+          port: testAccount.smtp.port,
+          secure: testAccount.smtp.secure,
+          auth: { user: testAccount.user, pass: testAccount.pass },
+        });
 
-      const info = await testTransporter.sendMail(mailOptions);
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      console.log(`Email delivered via Ethereal SMTP! Preview URL: ${previewUrl}`);
-      return { success: true, messageId: info.messageId, previewUrl, provider: 'Ethereal Live Preview' };
+        const info = await testTransporter.sendMail(mailOptions);
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        console.log(`Email fallback sent via Ethereal SMTP to ${to}! Preview: ${previewUrl}`);
+        return { success: true, messageId: info.messageId, previewUrl, provider: 'Ethereal Test SMTP' };
+      } catch (fallbackErr) {
+        console.error('Fallback email transport also failed:', fallbackErr.message);
+        return { success: false, error: 'Failed to send email, please check the target email address.' };
+      }
     }
   } catch (error) {
-    console.error('Failed to send email:', error.message);
-    return { success: false, error: error.message };
+    console.error('Failed to execute sendMail:', error.message);
+    return { success: false, error: 'Failed to send email, please check the target email address.' };
   }
 };
 
