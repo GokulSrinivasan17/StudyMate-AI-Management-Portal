@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { GraduationCap, LogIn, Sparkles, User, GraduationCap as TeacherIcon, Eye, EyeOff, Lock, Mail, RefreshCw } from 'lucide-react';
+import { GraduationCap, LogIn, Eye, EyeOff, Lock, Mail, RefreshCw } from 'lucide-react';
 
 export const Login = () => {
   const [email, setEmail] = useState('student@smartedu.ai');
@@ -14,23 +14,6 @@ export const Login = () => {
   const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
-
-  const handleDemoLogin = async (targetRole) => {
-    setLoading(true);
-    let demoEmail = 'student@smartedu.ai';
-    if (targetRole === 'teacher') demoEmail = 'teacher@smartedu.ai';
-
-    try {
-      const loggedUser = await login(demoEmail, 'password123', targetRole);
-      addToast(`Authenticated as ${loggedUser.name} (${targetRole.toUpperCase()})!`, 'success', 'Demo Authentication');
-      if (targetRole === 'teacher') navigate('/teacher/dashboard');
-      else navigate('/student/dashboard');
-    } catch {
-      addToast('Demo login failed.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,36 +40,6 @@ export const Login = () => {
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">SmartEdu AI Portal</h2>
           <p className="text-xs text-slate-500 font-medium">Log in to your academic portal workspace</p>
-        </div>
-
-        {/* Hackathon Demo Account Section */}
-        <div className="bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 space-y-3 shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Hackathon Demo Accounts
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono">Buildathon 2026</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('student')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
-            >
-              <User className="w-4 h-4 text-amber-300" />
-              <span className="text-[11px]">Student Demo</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoLogin('teacher')}
-              className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 px-3 rounded-xl transition-all flex flex-col items-center gap-1 shadow-sm hover:scale-105"
-            >
-              <TeacherIcon className="w-4 h-4 text-purple-200" />
-              <span className="text-[11px]">Teacher Demo</span>
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
