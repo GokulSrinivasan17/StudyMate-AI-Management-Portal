@@ -14,6 +14,7 @@ const env = {
   TELEGRAM_BOT_USERNAME: process.env.TELEGRAM_BOT_USERNAME || '@studymateAgent_bot',
   GMAIL_USER: process.env.GMAIL_USER || process.env.EMAIL_USER || '',
   GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS || '',
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
 };
 
 module.exports = env;
